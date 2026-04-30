@@ -145,22 +145,31 @@
   }
   .item:active { background: var(--bg); }
   .check {
-    flex-shrink: 0; width: 22px; height: 22px;
+    flex-shrink: 0; width: 26px; height: 26px;
     border: 1.5px solid var(--line-strong); border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     transition: all 0.18s ease;
     position: relative;
+    background: var(--surface);
+    z-index: 1;
   }
   .check svg.check-icon {
-    width: 12px; height: 12px;
+    width: 14px; height: 14px;
     stroke: #fff; stroke-width: 3; fill: none;
     stroke-linecap: round; stroke-linejoin: round;
     opacity: 0; transform: scale(0.5);
     transition: all 0.18s ease;
+    position: absolute;
+  }
+  .check .step-num {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-mute);
+    transition: opacity 0.18s ease;
   }
   .check .rest-icon {
     position: absolute;
-    width: 10px; height: 1.5px;
+    width: 12px; height: 1.5px;
     background: var(--ink-mute);
     border-radius: 999px;
     opacity: 0;
@@ -168,12 +177,34 @@
   }
   .item.done .check { background: var(--accent); border-color: var(--accent); }
   .item.done .check svg.check-icon { opacity: 1; transform: scale(1); }
+  .item.done .check .step-num { opacity: 0; }
   .item.rest .check {
     background: var(--bg);
     border-color: var(--line-strong);
     border-style: dashed;
   }
+  .item.rest .check .step-num { opacity: 0; }
   .item.rest .check .rest-icon { opacity: 1; }
+
+  /* 단계 사이 connector 라인 */
+  .item::after {
+    content: "";
+    position: absolute;
+    left: 30px; /* check 가운데 = padding 18 + check half 13 ≈ 31, 세로 라인 1px */
+    top: 50%;
+    bottom: -50%;
+    width: 0;
+    border-left: 1.5px dashed var(--line);
+    z-index: 0;
+    transition: border-color 0.22s ease, border-style 0.22s ease;
+  }
+  /* 마지막 .item은 connector 없음 — JS에서 .last 추가 */
+  .item.last::after { display: none; }
+  /* 다음 단계까지 완료된 경우 connector 액센트 실선 */
+  .item.done::after {
+    border-left-color: var(--accent);
+    border-left-style: solid;
+  }
 
   /* 다음 단계 강조 (B) */
   .item.next::before {
@@ -541,7 +572,7 @@
   }
   .tab.disabled { opacity: 0.35; pointer-events: none; }
 
-  /* 한 번에 완료 버튼 */
+  /* 오늘 루틴 종료 버튼 */
   .bulk-complete-row {
     margin: -16px 24px 24px;
     display: flex;
@@ -553,26 +584,112 @@
     background: var(--surface);
     border: 1px solid var(--line);
     color: var(--ink-soft);
-    padding: 10px 18px;
+    padding: 12px 22px;
     border-radius: 999px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     font-family: inherit;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     transition: all 0.14s ease;
   }
   .bulk-complete-btn:active {
-    background: var(--accent-soft);
+    transform: scale(0.98);
+  }
+  .bulk-complete-btn.ready {
+    background: var(--accent);
     border-color: var(--accent);
-    color: var(--accent-deep);
+    color: #fff;
+    font-weight: 600;
+  }
+  .bulk-complete-btn.ready:active {
+    background: var(--accent-deep);
+  }
+  .bulk-complete-btn.finished {
+    opacity: 0.55;
+    cursor: default;
+    pointer-events: none;
+    background: var(--bg);
   }
   .bulk-complete-btn svg {
     width: 14px; height: 14px;
     fill: none; stroke: currentColor;
     stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .bulk-complete-btn .ad-icon {
+    font-size: 9px;
+    background: rgba(255,255,255,0.25);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .bulk-complete-btn:not(.ready) .ad-icon {
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+  }
+
+  /* 광고 시뮬 오버레이 */
+  .ad-overlay {
+    position: fixed; inset: 0;
+    background: #0F0E0C;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 250;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.32s ease;
+  }
+  .ad-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .ad-content {
+    text-align: center;
+    color: #fff;
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 40px 32px;
+    max-width: 340px;
+  }
+  .ad-tag {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: #999;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.08);
+    padding: 5px 12px;
+    border-radius: 999px;
+  }
+  .ad-mock-frame {
+    width: 100%;
+    aspect-ratio: 1.6;
+    background: linear-gradient(135deg, #2A2722, #1A1815);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: #777;
+    font-size: 13px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .ad-mock-frame strong {
+    color: #BBB;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .ad-countdown {
+    font-size: 28px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+  .ad-note {
+    font-size: 11px;
+    color: #666;
+    line-height: 1.6;
   }
 
   /* D: 하루 완료 풀스크린 셀러브레이션 */
@@ -1242,6 +1359,19 @@
   </div>
 </div>
 
+<!-- 광고 시뮬 (실 앱: 앱인토스 보상형 광고 SDK) -->
+<div class="ad-overlay" id="ad-overlay">
+  <div class="ad-content">
+    <div class="ad-tag">광고 시청 중</div>
+    <div class="ad-mock-frame">
+      <strong>광고 영역</strong>
+      <span>실 앱에선 보상형 광고가 재생됩니다</span>
+    </div>
+    <div class="ad-countdown" id="ad-countdown">3</div>
+    <div class="ad-note">시안 시뮬레이션 — 자동으로 닫힙니다</div>
+  </div>
+</div>
+
 <!-- D: 하루 완료 셀러브레이션 -->
 <div class="celebrate-overlay" id="celebrate-overlay">
   <div class="celebrate-content">
@@ -1539,11 +1669,13 @@
   /* ============ 오늘 view 렌더 ============ */
   function statusOf(id) { return checkState[today][id]; } // "done" | "rest" | undefined
 
-  function buildItemEl(item, period) {
+  function buildItemEl(item, period, stepNum, isLast) {
     const status = statusOf(item.id);
     const memo = getMemo(item.id);
     const el = document.createElement("div");
-    el.className = "item" + (status === "done" ? " done" : status === "rest" ? " rest" : "");
+    el.className = "item"
+      + (status === "done" ? " done" : status === "rest" ? " rest" : "")
+      + (isLast ? " last" : "");
     el.dataset.id = item.id;
     el.dataset.period = period;
     const subOrMemo = item.sub
@@ -1557,6 +1689,7 @@
     }
     el.innerHTML = `
       <div class="check">
+        <span class="step-num">${stepNum}</span>
         <svg class="check-icon" viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg>
         <span class="rest-icon"></span>
       </div>
@@ -1573,7 +1706,10 @@
   function renderList(containerId, items, period, metaId) {
     const root = document.getElementById(containerId);
     root.innerHTML = "";
-    items.forEach(item => root.appendChild(buildItemEl(item, period)));
+    items.forEach((item, idx) => {
+      const isLast = idx === items.length - 1;
+      root.appendChild(buildItemEl(item, period, idx + 1, isLast));
+    });
     refreshMeta(period, items, metaId);
   }
 
@@ -1608,42 +1744,84 @@
     document.getElementById("progress-ring").style.background =
       `conic-gradient(var(--accent) 0% ${pct}%, var(--accent-soft) ${pct}% 100%)`;
 
-    // 한 번에 완료 버튼 가시성
-    const remaining = active - done;
+    // 종료 버튼 라벨/상태 갱신
+    refreshEndButton();
+  }
+
+  /* 오늘 종료 버튼 */
+  function isDayFinished() {
+    return !!localStorage.getItem("routine_check_finished_" + today);
+  }
+
+  function refreshEndButton() {
     const row = document.getElementById("bulk-complete-row");
-    if (row) {
-      if (remaining > 0) {
-        row.classList.remove("hidden");
-        document.getElementById("bulk-complete-label").textContent =
-          remaining === active
-            ? "오늘 루틴 모두 완료"
-            : `남은 ${remaining}단계 모두 완료`;
-      } else {
-        row.classList.add("hidden");
-      }
+    const btn = document.getElementById("bulk-complete-btn");
+    const label = document.getElementById("bulk-complete-label");
+    if (!row || !btn || !label) return;
+
+    if (!hasSteps()) {
+      row.classList.add("hidden");
+      return;
+    }
+    row.classList.remove("hidden");
+
+    const all = [...userRoutine.morning, ...userRoutine.evening];
+    const restCount = all.filter(i => statusOf(i.id) === "rest").length;
+    const active = all.length - restCount;
+    const done = all.filter(i => statusOf(i.id) === "done").length;
+    const remaining = active - done;
+
+    btn.classList.remove("ready", "finished");
+
+    if (isDayFinished()) {
+      btn.classList.add("finished");
+      label.innerHTML = `오늘 종료됨`;
+    } else if (remaining === 0) {
+      btn.classList.add("ready");
+      label.innerHTML = `<span class="ad-icon">AD</span>오늘 루틴 종료`;
+    } else {
+      label.innerHTML = `<span class="ad-icon">AD</span>오늘 루틴 종료 (${remaining}단계 미완)`;
     }
   }
 
-  function completeAllRemaining() {
+  function showAdSimulation(onDone) {
+    const ad = document.getElementById("ad-overlay");
+    const cd = document.getElementById("ad-countdown");
+    let n = 3;
+    cd.textContent = n;
+    ad.classList.add("show");
+    const timer = setInterval(() => {
+      n--;
+      if (n > 0) {
+        cd.textContent = n;
+      } else {
+        clearInterval(timer);
+        ad.classList.remove("show");
+        setTimeout(onDone, 280);
+      }
+    }, 1000);
+  }
+
+  function endTodayRoutine() {
     if (!hasSteps()) return;
+    if (isDayFinished()) return;
+
     const all = [...userRoutine.morning, ...userRoutine.evening];
-    const todoIds = all
-      .filter(i => statusOf(i.id) !== "done" && statusOf(i.id) !== "rest")
-      .map(i => i.id);
-    if (todoIds.length === 0) return;
+    const restCount = all.filter(i => statusOf(i.id) === "rest").length;
+    const active = all.length - restCount;
+    const done = all.filter(i => statusOf(i.id) === "done").length;
+    const remaining = active - done;
 
-    const beforeMorning = sectionDoneCache.morning;
-    const beforeEvening = sectionDoneCache.evening;
+    if (remaining > 0) {
+      const ok = confirm(`아직 ${remaining}단계가 남았어요.\n그래도 오늘 루틴을 종료할까요?`);
+      if (!ok) return;
+    }
 
-    todoIds.forEach(id => { checkState[today][id] = "done"; });
-    saveCheck();
-    renderToday();
-
-    if (!beforeMorning && isSectionDone("morning")) flashSectionMeta("morning");
-    if (!beforeEvening && isSectionDone("evening")) flashSectionMeta("evening");
-
-    if (allDone()) celebrateDay();
-    showToast(`${todoIds.length}단계를 완료로 표시했어요`);
+    showAdSimulation(() => {
+      localStorage.setItem("routine_check_finished_" + today, "1");
+      celebrateDay();
+      refreshEndButton();
+    });
   }
 
   /* 일자별 완료율 계산 (현재 루틴 기준) */
@@ -1801,7 +1979,9 @@
     if (!oldEl) return null;
     const items = userRoutine[period];
     const item = items.find(i => i.id === itemId);
-    const newEl = buildItemEl(item, period);
+    const idx = items.findIndex(i => i.id === itemId);
+    const isLast = idx === items.length - 1;
+    const newEl = buildItemEl(item, period, idx + 1, isLast);
     oldEl.replaceWith(newEl);
 
     refreshAllMetas();
@@ -1890,9 +2070,7 @@
     }
     checkSectionTransitions();
     updateNextHighlight(true);
-    if (allDone()) {
-      celebrateDay();
-    }
+    // 자동 셀러브레이션은 발동 X — '오늘 루틴 종료' 버튼이 트리거
   }
 
   /* H: 길게 누르기 → 액션 시트 */
@@ -1952,7 +2130,9 @@
     const oldEl = document.querySelector(
       `#${actionTargetPeriod}-list .item[data-id="${actionTargetItem.id}"]`);
     if (oldEl) {
-      const newEl = buildItemEl(actionTargetItem, actionTargetPeriod);
+      const idx = items.findIndex(i => i.id === actionTargetItem.id);
+      const isLast = idx === items.length - 1;
+      const newEl = buildItemEl(actionTargetItem, actionTargetPeriod, idx + 1, isLast);
       oldEl.replaceWith(newEl);
     }
     closeAllSheets();
@@ -2416,7 +2596,7 @@
   document.getElementById("cta-create-routine-2").addEventListener("click", openPresetSheet);
 
   /* ============ TEST: 초기화 ============ */
-  document.getElementById("bulk-complete-btn").addEventListener("click", completeAllRemaining);
+  document.getElementById("bulk-complete-btn").addEventListener("click", endTodayRoutine);
 
   document.getElementById("reset-all").addEventListener("click", () => {
     if (!confirm("모든 루틴과 체크 기록을 지우고 첫 진입 상태로 되돌릴까요?")) return;
@@ -2425,6 +2605,7 @@
     localStorage.removeItem(STORAGE_NOTES);
     Object.keys(localStorage).forEach(k => {
       if (k.startsWith("routine_check_celebrated_")) localStorage.removeItem(k);
+      if (k.startsWith("routine_check_finished_")) localStorage.removeItem(k);
     });
     userRoutine = null;
     checkState = { [today]: {} };
