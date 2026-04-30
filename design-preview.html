@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>오늘의 루틴</title>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <style>
   :root {
     --bg: #FAFAF7;
@@ -242,8 +243,20 @@
     flex-shrink: 0; width: 28px; height: 28px;
     display: flex; align-items: center; justify-content: center;
     color: var(--ink-mute); cursor: grab;
+    touch-action: none;
   }
+  .handle:active { cursor: grabbing; }
   .handle svg { width: 14px; height: 14px; fill: currentColor; }
+  /* 드래그 정렬 시각 */
+  .drag-ghost {
+    opacity: 0.4;
+    background: var(--accent-soft);
+  }
+  .drag-chosen {
+    background: var(--surface);
+    box-shadow: 0 6px 16px rgba(20,18,15,0.1);
+    z-index: 10;
+  }
   .edit-item-text {
     flex: 1; min-width: 0;
     display: flex; flex-direction: column; gap: 2px;
@@ -853,7 +866,7 @@
   <div class="view active" id="view-today">
     <div class="header">
       <div class="header-text">
-        <div class="date" id="today-date">목, 4월 30일</div>
+        <div class="date" id="today-date"></div>
         <div class="greeting" id="today-greeting">오늘 루틴,<br/><span class="accent">하나씩 체크해 볼까요</span></div>
       </div>
     </div>
@@ -1400,7 +1413,23 @@
   /* ============ 상태 ============ */
   const STORAGE_ROUTINE = "routine_check_my_routine";
   const STORAGE_CHECK = "routine_check_state";
-  const today = "2026-04-30";
+
+  /* 날짜 헬퍼 */
+  function toISO(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  function fromISO(s) {
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  function dayKor(d) {
+    return ["일","월","화","수","목","금","토"][d.getDay()];
+  }
+
+  const today = toISO(new Date());
 
   let userRoutine = JSON.parse(localStorage.getItem(STORAGE_ROUTINE) || "null");
   // shape: { morning: [{id, title, sub}], evening: [{id, title, sub}] } or null
@@ -1539,22 +1568,127 @@
       `conic-gradient(var(--accent) 0% ${pct}%, var(--accent-soft) ${pct}% 100%)`;
   }
 
+  /* 일자별 완료율 계산 (현재 루틴 기준) */
+  function getDayCompletion(dateISO) {
+    if (!hasSteps()) return 0;
+    const dayState = checkState[dateISO] || {};
+    const all = [...userRoutine.morning, ...userRoutine.evening];
+    const restCount = all.filter(i => dayState[i.id] === "rest").length;
+    const active = all.length - restCount;
+    if (active === 0) return 0;
+    const doneCount = all.filter(i => dayState[i.id] === "done").length;
+    return doneCount / active;
+  }
+  function getDayLevel(dateISO) {
+    const pct = getDayCompletion(dateISO);
+    if (pct === 0) return 0;
+    if (pct < 0.5) return 1;
+    if (pct < 1) return 2;
+    return 3;
+  }
+
+  /* 스트릭 (현재 진행 중) */
+  function computeStreak() {
+    let streak = 0;
+    const cur = new Date();
+    cur.setHours(0,0,0,0);
+    // 오늘 미완이면 어제부터 시작 (오늘 안 끝나도 어제까지 연속이면 유지)
+    if (getDayCompletion(toISO(cur)) < 1) {
+      cur.setDate(cur.getDate() - 1);
+    }
+    while (getDayCompletion(toISO(cur)) >= 1) {
+      streak++;
+      cur.setDate(cur.getDate() - 1);
+      // 안전장치 — 너무 오래 거슬러 올라가지 않도록
+      if (streak > 365) break;
+    }
+    return streak;
+  }
+
+  /* 최장 스트릭 (전체 기간) */
+  function computeLongestStreak() {
+    const completedDates = Object.keys(checkState)
+      .filter(d => getDayCompletion(d) >= 1)
+      .sort();
+    if (!completedDates.length) return 0;
+    let longest = 1, current = 1;
+    for (let i = 1; i < completedDates.length; i++) {
+      const prev = fromISO(completedDates[i - 1]);
+      const curr = fromISO(completedDates[i]);
+      const diff = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
+      if (diff === 1) current++;
+      else current = 1;
+      if (current > longest) longest = current;
+    }
+    return longest;
+  }
+
+  /* 총 체크 회수 */
+  function computeTotalChecks() {
+    let total = 0;
+    Object.values(checkState).forEach(day => {
+      Object.values(day).forEach(v => {
+        if (v === "done") total++;
+      });
+    });
+    return total;
+  }
+
+  /* 이번 달 평균 완료율 (오늘까지) */
+  function computeMonthCompletion() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const todayDate = d.getDate();
+    let sum = 0;
+    for (let i = 1; i <= todayDate; i++) {
+      const iso = `${y}-${String(m+1).padStart(2,"0")}-${String(i).padStart(2,"0")}`;
+      sum += getDayCompletion(iso);
+    }
+    return Math.round(sum / todayDate * 100);
+  }
+
   function renderWeek() {
     const labels = ["월","화","수","목","금","토","일"];
-    const dummyDone = [true, true, true, false, false, false, false];
-    const todayIdx = 3;
     const root = document.getElementById("week");
     root.innerHTML = "";
-    labels.forEach((label, i) => {
-      const cls = dummyDone[i] ? " done" : (i === todayIdx ? " today" : "");
+    // 이번 주 월요일
+    const now = new Date();
+    now.setHours(0,0,0,0);
+    const dayOfWeek = (now.getDay() + 6) % 7; // 월=0
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - dayOfWeek);
+
+    for (let i = 0; i < 7; i++) {
+      const cur = new Date(monday);
+      cur.setDate(monday.getDate() + i);
+      const iso = toISO(cur);
+      const isToday = iso === today;
+      const isFuture = cur > now;
+      const completed = getDayCompletion(iso) >= 1;
+
       const day = document.createElement("div");
-      day.className = "day" + cls;
+      day.className = "day"
+        + (completed ? " done" : "")
+        + (isToday ? " today" : "");
+      const display = completed ? "✓" : (isFuture ? cur.getDate() : cur.getDate());
       day.innerHTML = `
-        <div class="day-label">${label}</div>
-        <div class="day-dot">${dummyDone[i] ? "✓" : (i+27)}</div>
+        <div class="day-label">${labels[i]}</div>
+        <div class="day-dot">${display}</div>
       `;
       root.appendChild(day);
-    });
+    }
+
+    // 스트릭 카운트 갱신
+    const streak = computeStreak();
+    const streakCountEl = document.querySelector(".streak-count");
+    if (streakCountEl) {
+      if (streak > 0) {
+        streakCountEl.innerHTML = `<strong>${streak}일</strong> 연속 완료 중`;
+      } else {
+        streakCountEl.innerHTML = `오늘부터 시작해 볼까요`;
+      }
+    }
   }
 
   function allDone() {
@@ -1654,8 +1788,9 @@
     const evening = userRoutine.evening.filter(i => statusOf(i.id) === "done").length;
     document.getElementById("celebrate-sub").textContent =
       `아침 ${morning}단계 · 저녁 ${evening}단계 모두 완료`;
-    // 더미 스트릭
-    document.getElementById("celebrate-streak").textContent = "🔥 4일 연속 완료";
+    const streak = computeStreak();
+    document.getElementById("celebrate-streak").textContent =
+      streak > 1 ? `🔥 ${streak}일 연속 완료` : "🌱 첫 완료를 축하해요";
 
     const ov = document.getElementById("celebrate-overlay");
     ov.classList.add("show");
@@ -1791,17 +1926,30 @@
   }
 
   function renderToday() {
+    // 헤더 날짜 갱신
+    const dateEl = document.getElementById("today-date");
+    if (dateEl) {
+      const d = new Date();
+      dateEl.textContent = `${dayKor(d)}, ${d.getMonth()+1}월 ${d.getDate()}일`;
+    }
     if (!hasRoutine()) return;
     renderList("morning-list", userRoutine.morning, "morning", "morning-meta");
     renderList("evening-list", userRoutine.evening, "evening", "evening-meta");
     renderProgress();
-    // 섹션 완료 캐시 초기화 (재진입 시 잘못된 flash 방지)
     sectionDoneCache.morning = isSectionDone("morning");
     sectionDoneCache.evening = isSectionDone("evening");
     updateNextHighlight(false);
   }
 
   /* ============ 기록 view 렌더 ============ */
+  function renderHistoryStats() {
+    const stats = document.querySelectorAll(".stat-row .stat .stat-value");
+    if (stats.length < 3) return;
+    stats[0].innerHTML = `${computeMonthCompletion()}<span class="unit">%</span>`;
+    stats[1].innerHTML = `${computeLongestStreak()}<span class="unit">일</span>`;
+    stats[2].innerHTML = `${computeTotalChecks()}<span class="unit">회</span>`;
+  }
+
   function renderCalendar() {
     const root = document.getElementById("calendar");
     root.innerHTML = "";
@@ -1811,22 +1959,33 @@
       lbl.textContent = l;
       root.appendChild(lbl);
     });
-    const startOffset = 2;
-    const daysInMonth = 30;
-    const todayDate = 30;
-    const levels = [
-      0,3,3,2,3,3,1,3,3,3,3,2,1,3,3,3,3,3,3,2,3,3,3,1,2,3,3,3,3,3
-    ];
+
+    // 현재 월 기준
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const firstDay = new Date(y, m, 1);
+    const startOffset = (firstDay.getDay() + 6) % 7; // 월=0
+    const daysInMonth = new Date(y, m + 1, 0).getDate();
+    const todayDate = now.getDate();
+
+    // 월/년 타이틀 갱신
+    const monthTitle = document.querySelector(".month-title");
+    if (monthTitle) monthTitle.textContent = `${y}년 ${m + 1}월`;
+
     for (let i = 0; i < startOffset; i++) {
       const empty = document.createElement("div");
       empty.className = "cal-day";
       root.appendChild(empty);
     }
     for (let d = 1; d <= daysInMonth; d++) {
-      const lv = levels[d-1] || 0;
+      const iso = `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+      const lv = getDayLevel(iso);
       const cell = document.createElement("div");
       const isToday = d === todayDate;
-      cell.className = "cal-day in-month" + (lv === 3 ? " l3" : "") + (isToday ? " today" : "");
+      cell.className = "cal-day in-month"
+        + (lv === 3 ? " l3" : "")
+        + (isToday ? " today" : "");
       cell.innerHTML = `${lv > 0 ? `<div class="level l${lv}"></div>` : ""}<span class="num">${d}</span>`;
       root.appendChild(cell);
     }
@@ -1835,22 +1994,29 @@
   function renderHistoryList() {
     const root = document.getElementById("history-list");
     root.innerHTML = "";
-    const data = [
-      { date: "4/30", pct: 27 }, { date: "4/29", pct: 100 },
-      { date: "4/28", pct: 100 }, { date: "4/27", pct: 91 },
-      { date: "4/26", pct: 73 }, { date: "4/25", pct: 100 },
-      { date: "4/24", pct: 82 }
-    ];
-    data.forEach(d => {
+    const now = new Date();
+    now.setHours(0,0,0,0);
+    for (let i = 0; i < 7; i++) {
+      const cur = new Date(now);
+      cur.setDate(now.getDate() - i);
+      const iso = toISO(cur);
+      const pct = Math.round(getDayCompletion(iso) * 100);
+      const label = `${cur.getMonth()+1}/${cur.getDate()}`;
       const el = document.createElement("div");
       el.className = "h-item";
       el.innerHTML = `
-        <div class="h-date">${d.date}</div>
-        <div class="h-bar-wrap"><div class="h-bar" style="width:${d.pct}%"></div></div>
-        <div class="h-pct">${d.pct}%</div>
+        <div class="h-date">${label}</div>
+        <div class="h-bar-wrap"><div class="h-bar" style="width:${pct}%"></div></div>
+        <div class="h-pct">${pct}%</div>
       `;
       root.appendChild(el);
-    });
+    }
+  }
+
+  function renderHistory() {
+    renderHistoryStats();
+    renderCalendar();
+    renderHistoryList();
   }
 
   /* ============ 편집 view 렌더 ============ */
@@ -1907,6 +2073,27 @@
         showToast("단계를 삭제했어요");
       });
     });
+
+    // 드래그 정렬
+    if (typeof Sortable !== "undefined") {
+      if (root._sortable) root._sortable.destroy();
+      root._sortable = new Sortable(root, {
+        handle: ".handle",
+        draggable: ".edit-item",
+        animation: 180,
+        ghostClass: "drag-ghost",
+        chosenClass: "drag-chosen",
+        onEnd: () => {
+          const newOrder = [...root.querySelectorAll(".edit-item")].map(el => {
+            const id = el.querySelector(".delete-btn").dataset.id;
+            return userRoutine[period].find(i => i.id === id);
+          }).filter(Boolean);
+          userRoutine[period] = newOrder;
+          saveRoutine();
+          renderToday();
+        }
+      });
+    }
   }
 
   /* 단계 수정 시트 */
@@ -2175,6 +2362,8 @@
     document.querySelectorAll(".view").forEach(v =>
       v.classList.toggle("active", v.id === "view-" + target));
     window.scrollTo({ top: 0, behavior: "instant" });
+    if (target === "history") renderHistory();
+    if (target === "today") renderWeek();
   }
   document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => switchView(tab.dataset.view));
@@ -2190,6 +2379,7 @@
   /* ============ 초기 렌더 ============ */
   localStorage.removeItem("routine_check_palette");
   refreshEmptyStates();
+  renderHistory();
   renderToday();
   renderWeek();
   renderCalendar();
