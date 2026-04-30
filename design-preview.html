@@ -2023,12 +2023,15 @@
     renderToday();
     renderEdit();
     closeAllSheets();
+
+    // 항상 편집 화면으로 이동 — 사용자가 단계·제품명을 다듬을 수 있게
+    switchView("edit");
+
     if (preset.id === "scratch") {
-      // 빈 루틴 시작 → 편집 view로 이동 + 단계 추가 시트 자동
-      switchView("edit");
+      // 빈 루틴은 단계 추가 시트도 자동으로 띄움
       setTimeout(() => openAddSheet("morning"), 300);
     } else {
-      showToast(preset.name + " 적용 완료");
+      showToast(preset.name + " 적용 — 단계를 다듬어 보세요");
     }
   });
 
