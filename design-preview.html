@@ -1,0 +1,2197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>오늘의 루틴</title>
+<style>
+  :root {
+    --bg: #FAFAF7;
+    --surface: #FFFFFF;
+    --line: #ECEAE3;
+    --line-strong: #D9D5CB;
+    --ink: #1A1815;
+    --ink-soft: #6B6760;
+    --ink-mute: #A8A39A;
+    --accent: #C9A87C;
+    --accent-deep: #B58F60;
+    --accent-soft: #F4ECDF;
+    --done: #A8A39A;
+    --radius: 14px;
+    --radius-lg: 20px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 15px;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .phone {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--bg);
+    padding-bottom: 96px;
+    position: relative;
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .header {
+    padding: 28px 24px 20px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .header-text { min-width: 0; }
+  .date { font-size: 13px; color: var(--ink-mute); letter-spacing: 0.02em; }
+  .greeting {
+    margin-top: 8px;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+  }
+  .greeting .accent { color: var(--accent); }
+  .header-action {
+    flex-shrink: 0;
+    margin-top: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--accent);
+    cursor: pointer;
+    user-select: none;
+    padding: 6px 4px;
+  }
+
+  /* 진행률 카드 */
+  .progress-card {
+    margin: 8px 24px 28px;
+    padding: 18px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .progress-text { display: flex; flex-direction: column; gap: 2px; }
+  .progress-label { font-size: 12px; color: var(--ink-mute); }
+  .progress-value { font-size: 18px; font-weight: 600; }
+  .progress-value strong { color: var(--accent); font-weight: 600; }
+  .ring {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: conic-gradient(var(--accent) 0% 50%, var(--accent-soft) 50% 100%);
+    display: flex; align-items: center; justify-content: center; position: relative;
+  }
+  .ring::after {
+    content: ""; position: absolute; inset: 6px;
+    background: var(--surface); border-radius: 50%;
+  }
+  .ring span {
+    position: relative; z-index: 1;
+    font-size: 13px; font-weight: 600; color: var(--ink);
+  }
+
+  /* 섹션 */
+  .section { margin: 0 24px 24px; }
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 10px; padding: 0 4px;
+  }
+  .section-title {
+    font-size: 13px; font-weight: 600; color: var(--ink-soft);
+    letter-spacing: 0.02em; text-transform: uppercase;
+  }
+  .section-meta {
+    font-size: 12px;
+    color: var(--ink-mute);
+    transition: color 0.18s ease;
+  }
+  /* C: 섹션 부분 완료 강조 */
+  .section-meta.complete {
+    color: var(--accent-deep);
+    font-weight: 600;
+  }
+
+  .list {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  /* 체크 아이템 */
+  .item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px; cursor: pointer;
+    transition: background 0.12s ease; user-select: none;
+    position: relative;
+    -webkit-touch-callout: none;
+  }
+  .item + .item, .item + .add-row,
+  .edit-item + .edit-item, .edit-item + .add-row {
+    border-top: 1px solid var(--line);
+  }
+  .item:active { background: var(--bg); }
+  .check {
+    flex-shrink: 0; width: 22px; height: 22px;
+    border: 1.5px solid var(--line-strong); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.18s ease;
+    position: relative;
+  }
+  .check svg.check-icon {
+    width: 12px; height: 12px;
+    stroke: #fff; stroke-width: 3; fill: none;
+    stroke-linecap: round; stroke-linejoin: round;
+    opacity: 0; transform: scale(0.5);
+    transition: all 0.18s ease;
+  }
+  .check .rest-icon {
+    position: absolute;
+    width: 10px; height: 1.5px;
+    background: var(--ink-mute);
+    border-radius: 999px;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+  .item.done .check { background: var(--accent); border-color: var(--accent); }
+  .item.done .check svg.check-icon { opacity: 1; transform: scale(1); }
+  .item.rest .check {
+    background: var(--bg);
+    border-color: var(--line-strong);
+    border-style: dashed;
+  }
+  .item.rest .check .rest-icon { opacity: 1; }
+
+  /* 다음 단계 강조 (B) */
+  .item.next::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 8px; bottom: 8px;
+    width: 3px;
+    background: var(--accent);
+    border-radius: 0 2px 2px 0;
+    transition: opacity 0.18s ease;
+  }
+  .item.next .check {
+    border-color: var(--accent);
+  }
+
+  .item-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .item-title { font-size: 15px; font-weight: 500; color: var(--ink); }
+  .item-sub {
+    font-size: 12px; color: var(--ink-mute);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .item.done .item-title {
+    color: var(--done);
+    text-decoration: line-through;
+    text-decoration-color: var(--line-strong);
+  }
+  .item.done .item-sub { color: var(--ink-mute); }
+  .item.rest .item-title { color: var(--ink-mute); }
+  .item.rest .item-sub { color: var(--ink-mute); opacity: 0.7; }
+  .rest-tag {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink-mute);
+    background: var(--bg);
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    letter-spacing: 0.04em;
+  }
+  /* H: 메모 표시 */
+  .memo-tag {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--ink-soft);
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: var(--accent-soft);
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .memo-tag::before {
+    content: "✏";
+    font-size: 9px;
+    color: var(--accent-deep);
+  }
+
+  /* 편집 아이템 */
+  .edit-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px 12px 6px; user-select: none;
+  }
+  .handle {
+    flex-shrink: 0; width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-mute); cursor: grab;
+  }
+  .handle svg { width: 14px; height: 14px; fill: currentColor; }
+  .edit-item-text {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .edit-title { font-size: 15px; font-weight: 500; color: var(--ink); }
+  .edit-sub {
+    font-size: 12px; color: var(--ink-mute);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .delete-btn {
+    flex-shrink: 0; width: 28px; height: 28px;
+    border-radius: 50%; border: none; background: transparent;
+    color: var(--ink-mute); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .delete-btn:active { background: var(--bg); }
+  .delete-btn svg {
+    width: 16px; height: 16px;
+    stroke: currentColor; stroke-width: 1.8; fill: none; stroke-linecap: round;
+  }
+
+  /* 추가 행 */
+  .add-row {
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px;
+    color: var(--ink-mute); font-size: 14px;
+    cursor: pointer; user-select: none;
+  }
+  .add-row:active { background: var(--bg); }
+  .add-row .plus {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 1.5px dashed var(--line-strong);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-mute); font-size: 14px; line-height: 1;
+  }
+
+  /* 스트릭 카드 */
+  .streak-card {
+    margin: 8px 24px 24px; padding: 18px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+  }
+  .streak-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .streak-title { font-size: 14px; font-weight: 600; }
+  .streak-count { font-size: 12px; color: var(--ink-mute); }
+  .streak-count strong { color: var(--accent); font-weight: 600; font-size: 13px; }
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .day { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .day-label { font-size: 11px; color: var(--ink-mute); }
+  .day-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 1.5px solid var(--line); background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--ink-mute);
+  }
+  .day.done .day-dot {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+  .day.today .day-dot { border-color: var(--accent); border-width: 2px; }
+  .day.today .day-label { color: var(--accent); font-weight: 600; }
+
+  /* 기록 view */
+  .stat-row {
+    margin: 8px 24px 20px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 12px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .stat-label { font-size: 11px; color: var(--ink-mute); }
+  .stat-value { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+  .stat-value .unit {
+    font-size: 13px; color: var(--ink-mute);
+    font-weight: 500; margin-left: 2px;
+  }
+
+  .month-card {
+    margin: 0 24px 20px; padding: 18px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+  }
+  .month-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px;
+  }
+  .month-title { font-size: 14px; font-weight: 600; }
+  .month-nav { display: flex; gap: 4px; }
+  .month-nav button {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: transparent; border: 1px solid var(--line);
+    color: var(--ink-soft); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .month-nav svg {
+    width: 12px; height: 12px;
+    stroke: currentColor; stroke-width: 2; fill: none;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .cal-label {
+    font-size: 11px; color: var(--ink-mute);
+    text-align: center; padding: 4px 0;
+  }
+  .cal-day {
+    aspect-ratio: 1; border-radius: 50%;
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: var(--ink-mute); position: relative;
+  }
+  .cal-day.in-month { color: var(--ink-soft); }
+  .cal-day .level {
+    position: absolute; inset: 4px;
+    border-radius: 50%; z-index: 0;
+  }
+  .cal-day .level.l1 { background: rgba(201,168,124,0.22); }
+  .cal-day .level.l2 { background: rgba(201,168,124,0.55); }
+  .cal-day .level.l3 { background: var(--accent); }
+  .cal-day.l3 { color: #fff; font-weight: 600; }
+  .cal-day .num { position: relative; z-index: 1; }
+  .cal-day.today { box-shadow: inset 0 0 0 2px var(--accent); }
+
+  .legend {
+    display: flex; align-items: center; gap: 8px;
+    justify-content: flex-end; margin-top: 14px;
+    font-size: 11px; color: var(--ink-mute);
+  }
+  .legend .dots { display: flex; gap: 4px; align-items: center; }
+  .legend .ld {
+    width: 10px; height: 10px; border-radius: 50%; background: var(--line);
+  }
+  .legend .ld.l1 { background: rgba(201,168,124,0.22); }
+  .legend .ld.l2 { background: rgba(201,168,124,0.55); }
+  .legend .ld.l3 { background: var(--accent); }
+
+  .history-list {
+    margin: 0 24px 24px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .h-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px;
+  }
+  .h-item + .h-item { border-top: 1px solid var(--line); }
+  .h-bar-wrap {
+    flex: 1; height: 6px; background: var(--bg);
+    border-radius: 999px; overflow: hidden;
+  }
+  .h-bar { height: 100%; background: var(--accent); border-radius: 999px; }
+  .h-date { font-size: 13px; width: 64px; color: var(--ink-soft); }
+  .h-pct {
+    font-size: 13px; font-weight: 600; color: var(--ink);
+    width: 40px; text-align: right;
+  }
+
+  /* 빈 상태 */
+  .empty {
+    margin: 8px 24px 24px;
+    padding: 40px 24px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 18px;
+  }
+  .empty-illu {
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent-deep);
+  }
+  .empty-illu svg {
+    width: 44px; height: 44px;
+    fill: none; stroke: currentColor;
+    stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .empty-text { display: flex; flex-direction: column; gap: 6px; }
+  .empty-title { font-size: 17px; font-weight: 600; color: var(--ink); }
+  .empty-desc {
+    font-size: 13px; color: var(--ink-mute);
+    line-height: 1.6;
+  }
+
+  .btn-primary {
+    appearance: none;
+    border: none;
+    background: var(--ink);
+    color: #fff;
+    padding: 14px 22px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: opacity 0.12s ease;
+  }
+  .btn-primary:active { opacity: 0.85; }
+  .btn-secondary {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    padding: 12px 20px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .empty-cta { display: flex; flex-direction: column; gap: 8px; align-items: stretch; width: 100%; max-width: 240px; }
+
+  /* 예시 미리보기 */
+  .example-divider {
+    margin: 32px 24px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .example-divider::before,
+  .example-divider::after {
+    content: ""; flex: 1; height: 1px; background: var(--line);
+  }
+  .example-tag {
+    font-size: 11px; font-weight: 600;
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+    padding: 4px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+  }
+  .example-caption {
+    margin: 0 24px 16px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-mute);
+    line-height: 1.6;
+  }
+  .example-wrap {
+    pointer-events: none;
+    user-select: none;
+  }
+  .example-wrap .item { cursor: default; }
+
+  /* 하단 탭 */
+  .tabbar {
+    position: fixed; bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 420px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: saturate(140%) blur(12px);
+    -webkit-backdrop-filter: saturate(140%) blur(12px);
+    border-top: 1px solid var(--line);
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    z-index: 30;
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 8px 0; color: var(--ink-mute); font-size: 11px;
+    cursor: pointer; user-select: none;
+  }
+  .tab.active { color: var(--ink); }
+  .tab .icon { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; }
+  .tab svg {
+    width: 22px; height: 22px;
+    fill: none; stroke: currentColor;
+    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .tab.disabled { opacity: 0.35; pointer-events: none; }
+
+  /* D: 하루 완료 풀스크린 셀러브레이션 */
+  .celebrate-overlay {
+    position: fixed; inset: 0;
+    background: rgba(244, 236, 223, 0);
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+    pointer-events: none;
+    transition: background 0.4s ease, backdrop-filter 0.4s ease;
+  }
+  .celebrate-overlay.show {
+    background: rgba(244, 236, 223, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    pointer-events: auto;
+  }
+  .celebrate-content {
+    text-align: center;
+    display: flex; flex-direction: column; gap: 14px;
+    align-items: center;
+    transform: translateY(14px) scale(0.96);
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.2, 0.85, 0.3, 1);
+  }
+  .celebrate-overlay.show .celebrate-content {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  .celebrate-mark {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(201,168,124,0.32);
+  }
+  .celebrate-mark svg {
+    width: 36px; height: 36px;
+    stroke: #fff; stroke-width: 3; fill: none;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .celebrate-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    margin-top: 4px;
+  }
+  .celebrate-sub {
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .celebrate-streak {
+    font-size: 13px;
+    color: var(--accent-deep);
+    font-weight: 600;
+    background: rgba(255,255,255,0.6);
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-top: 4px;
+  }
+
+  /* H: 액션 시트 (단계 길게 누르기) */
+  .action-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+  .action-row {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--ink);
+    font-size: 15px;
+    transition: background 0.12s ease;
+  }
+  .action-row:active { background: var(--bg); }
+  .action-icon {
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent-deep);
+    flex-shrink: 0;
+  }
+  .action-icon svg {
+    width: 18px; height: 18px;
+    fill: none; stroke: currentColor;
+    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* 토스트 */
+  .toast {
+    position: fixed; bottom: 96px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: #fff;
+    padding: 12px 18px; border-radius: 999px;
+    font-size: 13px;
+    opacity: 0; pointer-events: none;
+    transition: all 0.24s ease;
+    white-space: nowrap; z-index: 50;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* 바텀시트 */
+  .sheet-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(20,18,15,0);
+    pointer-events: none;
+    transition: background 0.22s ease;
+    z-index: 60;
+  }
+  .sheet-backdrop.show {
+    background: rgba(20,18,15,0.42);
+    pointer-events: auto;
+  }
+  .sheet {
+    position: fixed; left: 50%; bottom: 0;
+    transform: translateX(-50%) translateY(100%);
+    width: 100%; max-width: 420px;
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    padding: 14px 20px calc(20px + env(safe-area-inset-bottom));
+    transition: transform 0.28s cubic-bezier(0.2, 0.85, 0.3, 1);
+    z-index: 70;
+    box-shadow: 0 -8px 24px rgba(20,18,15,0.08);
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .sheet.show { transform: translateX(-50%) translateY(0); }
+  .sheet-grip {
+    width: 40px; height: 4px;
+    background: var(--line-strong);
+    border-radius: 999px;
+    margin: 0 auto 14px;
+  }
+  .sheet-title {
+    font-size: 18px; font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .sheet-desc {
+    font-size: 13px; color: var(--ink-mute);
+    margin-bottom: 18px;
+  }
+
+  /* 프리셋 옵션 */
+  .preset-list { display: flex; flex-direction: column; gap: 8px; }
+  .preset {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.14s ease;
+    user-select: none;
+    background: var(--surface);
+  }
+  .preset:active { background: var(--bg); }
+  .preset.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .preset-head {
+    display: flex; justify-content: space-between;
+    align-items: baseline; margin-bottom: 4px;
+  }
+  .preset-name { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .preset-count { font-size: 12px; color: var(--ink-mute); }
+  .preset-desc { font-size: 12px; color: var(--ink-soft); line-height: 1.5; }
+
+  .preset-steps {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .preset-row {
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .preset-row-label {
+    flex-shrink: 0;
+    font-size: 11px; font-weight: 600;
+    color: var(--ink-mute);
+    width: 30px;
+    padding-top: 4px;
+    letter-spacing: 0.02em;
+  }
+  .preset-chips {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    flex: 1;
+  }
+  .preset.selected .preset-row-label { color: var(--accent-deep); }
+  .chip {
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    line-height: 1.4;
+  }
+  .preset.selected .chip {
+    background: var(--surface);
+    border-color: var(--accent);
+    color: var(--ink);
+  }
+  .preset-empty {
+    font-size: 12px;
+    color: var(--ink-mute);
+    font-style: italic;
+  }
+
+  .sheet-actions {
+    display: flex; gap: 8px;
+    margin-top: 18px;
+  }
+  .sheet-actions .btn-primary { flex: 1; }
+  .sheet-actions .btn-secondary { flex: 0 0 auto; }
+
+  /* 단계 추가 폼 */
+  .form-group { margin-bottom: 14px; }
+  .form-label {
+    display: block; font-size: 12px;
+    color: var(--ink-soft); font-weight: 500;
+    margin-bottom: 6px;
+    letter-spacing: 0.01em;
+  }
+  .form-input {
+    width: 100%; appearance: none;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 15px;
+    color: var(--ink);
+    font-family: inherit;
+    transition: border-color 0.14s ease, background 0.14s ease;
+  }
+  .form-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--surface);
+  }
+  .form-input::placeholder { color: var(--ink-mute); }
+
+  .seg {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 6px; padding: 4px;
+    background: var(--bg);
+    border-radius: 12px;
+  }
+  .seg-btn {
+    appearance: none; border: none; background: transparent;
+    padding: 10px; border-radius: 8px;
+    font-size: 14px; font-weight: 500;
+    color: var(--ink-mute); cursor: pointer;
+    transition: all 0.14s ease;
+  }
+  .seg-btn.active {
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(20,18,15,0.06);
+  }
+
+  /* 단계 추가용 칩 */
+  .add-chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .add-chip {
+    appearance: none;
+    font-size: 13px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink-soft);
+    border: 1px solid var(--line);
+    cursor: pointer;
+    transition: all 0.14s ease;
+    font-family: inherit;
+    line-height: 1.3;
+  }
+  .add-chip:active { transform: scale(0.97); }
+  .add-chip.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    font-weight: 500;
+  }
+
+  .form-divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 18px 0 14px;
+    color: var(--ink-mute);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .form-divider::before,
+  .form-divider::after {
+    content: ""; flex: 1;
+    height: 1px; background: var(--line);
+  }
+
+  .selected-summary {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    padding: 8px 12px;
+    background: var(--accent-soft);
+    border-radius: 10px;
+    display: none;
+  }
+  .selected-summary.show { display: block; }
+  .selected-summary strong {
+    color: var(--accent-deep);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- =================== 오늘 VIEW =================== -->
+  <div class="view active" id="view-today">
+    <div class="header">
+      <div class="header-text">
+        <div class="date" id="today-date">목, 4월 30일</div>
+        <div class="greeting" id="today-greeting">오늘 루틴,<br/><span class="accent">하나씩 체크해 볼까요</span></div>
+      </div>
+    </div>
+
+    <!-- 빈 상태 (루틴 없을 때) -->
+    <div id="today-empty" style="display:none">
+      <div class="empty">
+        <div class="empty-illu">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>
+            <circle cx="12" cy="12" r="4"/>
+          </svg>
+        </div>
+        <div class="empty-text">
+          <div class="empty-title">아직 등록한 루틴이 없어요</div>
+          <div class="empty-desc">매일 같은 단계를 빠뜨리지 않게<br/>나만의 루틴을 먼저 만들어 볼게요</div>
+        </div>
+        <div class="empty-cta">
+          <button class="btn-primary" id="cta-create-routine">내 루틴 만들기</button>
+        </div>
+      </div>
+
+      <!-- 예시 미리보기 -->
+      <div id="example-section">
+      <div class="example-divider">
+        <span class="example-tag">예시</span>
+      </div>
+      <div class="example-caption">루틴을 등록하면 이렇게 보여요</div>
+
+      <div class="example-wrap">
+        <div class="progress-card">
+          <div class="progress-text">
+            <div class="progress-label">오늘의 진행률</div>
+            <div class="progress-value"><strong style="color:var(--accent)">0</strong> / 11 단계</div>
+          </div>
+          <div class="ring" style="background:conic-gradient(var(--accent) 0% 0%, var(--accent-soft) 0% 100%)">
+            <span>0%</span>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">아침 루틴</div>
+            <div class="section-meta">0 / 5</div>
+          </div>
+          <div class="list">
+            <div class="item">
+              <div class="check"><svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg></div>
+              <div class="item-text">
+                <div class="item-title">물 세안</div>
+                <div class="item-sub">미온수로 가볍게</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="check"><svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg></div>
+              <div class="item-text">
+                <div class="item-title">토너</div>
+                <div class="item-sub">라운드랩 청귤 토너</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="check"><svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg></div>
+              <div class="item-text">
+                <div class="item-title">에센스</div>
+                <div class="item-sub">에스트라 아토베리어</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="check"><svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg></div>
+              <div class="item-text">
+                <div class="item-title">수분 크림</div>
+                <div class="item-sub">닥터지 레드 블레미쉬</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="check"><svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg></div>
+              <div class="item-text">
+                <div class="item-title">선크림</div>
+                <div class="item-sub">라로슈포제 안뗄리오스</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">저녁 루틴</div>
+            <div class="section-meta">0 / 6</div>
+          </div>
+          <div class="list">
+            <div class="item">
+              <div class="check"><svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg></div>
+              <div class="item-text">
+                <div class="item-title">클렌징 오일</div>
+                <div class="item-sub">바넷 미생물 발효</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="check"><svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg></div>
+              <div class="item-text">
+                <div class="item-title">폼 클렌저</div>
+                <div class="item-sub">세타필 젠틀</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="check"><svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg></div>
+              <div class="item-text">
+                <div class="item-title">토너 패드</div>
+                <div class="item-sub">메디힐 BHA</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="check"><svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg></div>
+              <div class="item-text">
+                <div class="item-title">세럼</div>
+                <div class="item-sub">더오디너리 나이아신아마이드</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="check"><svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg></div>
+              <div class="item-text">
+                <div class="item-title">아이크림</div>
+                <div class="item-sub">키엘 아보카도</div>
+              </div>
+            </div>
+            <div class="item">
+              <div class="check"><svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg></div>
+              <div class="item-text">
+                <div class="item-title">수분 크림</div>
+                <div class="item-sub">라네즈 워터 슬리핑</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div><!-- /example-section -->
+    </div>
+
+    <!-- 정상 상태 -->
+    <div id="today-content">
+      <div class="progress-card">
+        <div class="progress-text">
+          <div class="progress-label">오늘의 진행률</div>
+          <div class="progress-value"><strong id="progress-count">0</strong> / <span id="progress-total">11</span> 단계</div>
+        </div>
+        <div class="ring" id="progress-ring">
+          <span id="progress-percent">0%</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">아침 루틴</div>
+          <div class="section-meta" id="morning-meta">0 / 5</div>
+        </div>
+        <div class="list" id="morning-list"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">저녁 루틴</div>
+          <div class="section-meta" id="evening-meta">0 / 6</div>
+        </div>
+        <div class="list" id="evening-list"></div>
+      </div>
+
+      <div class="streak-card">
+        <div class="streak-head">
+          <div class="streak-title">이번 주 체크</div>
+          <div class="streak-count"><strong>3일</strong> 연속 완료 중</div>
+        </div>
+        <div class="week" id="week"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== 기록 VIEW =================== -->
+  <div class="view" id="view-history">
+    <div class="header">
+      <div class="header-text">
+        <div class="date">전체 기록</div>
+        <div class="greeting">꾸준함이<br/><span class="accent">남는 거예요</span></div>
+      </div>
+    </div>
+
+    <!-- 빈 상태 (기록 없음) -->
+    <div id="history-empty" style="display:none">
+      <div class="empty">
+        <div class="empty-illu">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="5" width="18" height="16" rx="2"/>
+            <path d="M8 3v4M16 3v4M3 11h18"/>
+          </svg>
+        </div>
+        <div class="empty-text">
+          <div class="empty-title">기록은 루틴을 만든 뒤부터</div>
+          <div class="empty-desc">루틴을 등록하고 첫 체크를 마치면<br/>여기에 차곡차곡 쌓여요</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="history-content">
+      <div class="stat-row">
+        <div class="stat">
+          <div class="stat-label">이번 달 완료</div>
+          <div class="stat-value">87<span class="unit">%</span></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">최장 연속</div>
+          <div class="stat-value">14<span class="unit">일</span></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">총 체크</div>
+          <div class="stat-value">213<span class="unit">회</span></div>
+        </div>
+      </div>
+
+      <div class="month-card">
+        <div class="month-head">
+          <div class="month-title">2026년 4월</div>
+          <div class="month-nav">
+            <button><svg viewBox="0 0 24 24"><polyline points="15,6 9,12 15,18"/></svg></button>
+            <button><svg viewBox="0 0 24 24"><polyline points="9,6 15,12 9,18"/></svg></button>
+          </div>
+        </div>
+        <div class="calendar" id="calendar"></div>
+        <div class="legend">
+          완료율
+          <div class="dots">
+            <div class="ld"></div>
+            <div class="ld l1"></div>
+            <div class="ld l2"></div>
+            <div class="ld l3"></div>
+          </div>
+          100%
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">최근 7일</div>
+        </div>
+        <div class="history-list" id="history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== 내 루틴 VIEW =================== -->
+  <div class="view" id="view-edit">
+    <div class="header">
+      <div class="header-text">
+        <div class="date">내 루틴</div>
+        <div class="greeting">나에게 맞는<br/><span class="accent">단계를 만들어요</span></div>
+      </div>
+      <div class="header-action" id="done-edit" style="display:none">완료</div>
+    </div>
+
+    <!-- 빈 상태 -->
+    <div id="edit-empty" style="display:none">
+      <div class="empty">
+        <div class="empty-illu">
+          <svg viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M8 12h8M12 8v8"/>
+          </svg>
+        </div>
+        <div class="empty-text">
+          <div class="empty-title">루틴을 만들어 볼까요?</div>
+          <div class="empty-desc">추천 루틴으로 빠르게 시작하거나<br/>처음부터 직접 만들 수 있어요</div>
+        </div>
+        <div class="empty-cta">
+          <button class="btn-primary" id="cta-create-routine-2">내 루틴 만들기</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="edit-content">
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">아침 루틴</div>
+          <div class="section-meta" id="edit-morning-meta">5 단계</div>
+        </div>
+        <div class="list" id="edit-morning-list"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">저녁 루틴</div>
+          <div class="section-meta" id="edit-evening-meta">6 단계</div>
+        </div>
+        <div class="list" id="edit-evening-list"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">팁</div>
+        </div>
+        <div class="list">
+          <div class="item" style="cursor:default">
+            <div class="item-text">
+              <div class="item-title" style="font-size:13px;color:var(--ink-soft);font-weight:500">길게 눌러 순서를 바꿀 수 있어요</div>
+              <div class="item-sub">자주 쓰는 제품은 위로 올려두면 편해요</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEST ONLY: 시안에서 빈 상태 플로우 재확인용 -->
+    <div style="margin: 32px 24px; text-align: center;">
+      <button id="reset-all" style="appearance:none;background:transparent;border:none;color:var(--ink-mute);font-size:12px;text-decoration:underline;cursor:pointer;padding:8px;font-family:inherit">
+        테스트: 모든 데이터 초기화
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- 하단 탭 -->
+<div class="tabbar">
+  <div class="tab active" data-view="today">
+    <div class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12,7 12,12 15,14"/></svg></div>
+    <div>오늘</div>
+  </div>
+  <div class="tab" data-view="history">
+    <div class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg></div>
+    <div>기록</div>
+  </div>
+  <div class="tab" data-view="edit">
+    <div class="icon"><svg viewBox="0 0 24 24"><path d="M4 6h12M4 12h8M4 18h12"/><circle cx="20" cy="6" r="1.5"/><circle cx="16" cy="12" r="1.5"/><circle cx="20" cy="18" r="1.5"/></svg></div>
+    <div>내 루틴</div>
+  </div>
+</div>
+
+<!-- D: 하루 완료 셀러브레이션 -->
+<div class="celebrate-overlay" id="celebrate-overlay">
+  <div class="celebrate-content">
+    <div class="celebrate-mark">
+      <svg viewBox="0 0 24 24"><polyline points="5,12 10,17 19,7"/></svg>
+    </div>
+    <div class="celebrate-title">오늘도 끝났어요</div>
+    <div class="celebrate-sub" id="celebrate-sub">아침 5단계 · 저녁 6단계 모두 완료</div>
+    <div class="celebrate-streak" id="celebrate-streak">🔥 4일 연속 완료</div>
+  </div>
+</div>
+
+<!-- 토스트 -->
+<div class="toast" id="toast">오늘 루틴 완료! 🌿</div>
+
+<!-- H: 단계 액션 시트 (길게 누르기) -->
+<div class="sheet" id="sheet-step-action">
+  <div class="sheet-grip"></div>
+  <div class="sheet-title" id="step-action-title">단계</div>
+  <div class="sheet-desc" id="step-action-desc"></div>
+
+  <div class="action-list">
+    <button class="action-row" data-action="rest">
+      <span class="action-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </span>
+      <span id="action-rest-label">오늘 휴식</span>
+    </button>
+    <button class="action-row" data-action="memo">
+      <span class="action-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+      </span>
+      <span id="action-memo-label">메모 남기기</span>
+    </button>
+  </div>
+  <button class="btn-secondary" data-sheet-close style="width:100%">닫기</button>
+</div>
+
+<!-- 단계 수정 시트 (내 루틴 편집 화면) -->
+<div class="sheet" id="sheet-edit-step">
+  <div class="sheet-grip"></div>
+  <div class="sheet-title">단계 수정</div>
+  <div class="sheet-desc" id="edit-step-desc">단계 이름과 사용 중인 제품을 수정해요</div>
+
+  <div class="form-group">
+    <label class="form-label">단계 이름</label>
+    <input type="text" class="form-input" id="edit-step-title" placeholder="예: 토너, 세럼" maxlength="20" />
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">사용 제품 <span style="color:var(--ink-mute);font-weight:400">(선택)</span></label>
+    <input type="text" class="form-input" id="edit-step-sub" placeholder="예: 라운드랩 청귤 토너" maxlength="40" />
+  </div>
+
+  <div class="sheet-actions">
+    <button class="btn-secondary" data-sheet-close>취소</button>
+    <button class="btn-primary" id="edit-step-save">저장</button>
+  </div>
+</div>
+
+<!-- H: 메모 입력 시트 -->
+<div class="sheet" id="sheet-memo">
+  <div class="sheet-grip"></div>
+  <div class="sheet-title" id="memo-title">메모</div>
+  <div class="sheet-desc" id="memo-desc">단계에 대한 메모를 남겨두세요</div>
+
+  <div class="form-group">
+    <input type="text" class="form-input" id="memo-input" placeholder="예: 오늘은 따끔거림 있었어요" maxlength="60" />
+  </div>
+
+  <div class="sheet-actions">
+    <button class="btn-secondary" data-sheet-close>취소</button>
+    <button class="btn-primary" id="memo-save">저장</button>
+  </div>
+</div>
+
+<!-- 바텀시트: 프리셋 선택 -->
+<div class="sheet-backdrop" id="sheet-backdrop"></div>
+<div class="sheet" id="sheet-preset">
+  <div class="sheet-grip"></div>
+  <div class="sheet-title">어떻게 시작할까요?</div>
+  <div class="sheet-desc">추천 루틴을 골라 빠르게 시작하거나<br/>처음부터 직접 만들 수 있어요</div>
+  <div class="preset-list" id="preset-list"></div>
+  <div class="sheet-actions">
+    <button class="btn-secondary" data-sheet-close>취소</button>
+    <button class="btn-primary" id="preset-confirm">이 루틴으로 시작</button>
+  </div>
+</div>
+
+<!-- 바텀시트: 단계 추가 -->
+<div class="sheet" id="sheet-add">
+  <div class="sheet-grip"></div>
+  <div class="sheet-title">단계 추가</div>
+  <div class="sheet-desc" id="add-context">아침 루틴에 새 단계를 더해요</div>
+
+  <div class="form-group">
+    <label class="form-label">시점</label>
+    <div class="seg" id="add-segment">
+      <button class="seg-btn active" data-period="morning">아침</button>
+      <button class="seg-btn" data-period="evening">저녁</button>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">자주 쓰는 단계 <span style="color:var(--ink-mute);font-weight:400">(여러 개 선택 가능)</span></label>
+    <div class="add-chips" id="add-chips"></div>
+    <div class="selected-summary" id="selected-summary"></div>
+  </div>
+
+  <div class="form-divider">또는 직접 추가</div>
+
+  <div class="form-group">
+    <label class="form-label">단계 이름</label>
+    <input type="text" class="form-input" id="add-title" placeholder="예: 진정 앰풀, 미스트" maxlength="20" />
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">메모 <span style="color:var(--ink-mute);font-weight:400">(선택)</span></label>
+    <input type="text" class="form-input" id="add-sub" placeholder="제품명 등을 적어두면 편해요" maxlength="40" />
+  </div>
+
+  <div class="sheet-actions">
+    <button class="btn-secondary" data-sheet-close>취소</button>
+    <button class="btn-primary" id="add-confirm">추가하기</button>
+  </div>
+</div>
+
+<script>
+  /* ============ 프리셋 데이터 ============ */
+  const PRESETS = [
+    {
+      id: "scratch",
+      name: "처음부터 직접 만들기",
+      desc: "단계 없이 비어있는 상태로 시작",
+      morning: [],
+      evening: []
+    },
+    {
+      id: "basic",
+      name: "기본 케어",
+      desc: "꼭 필요한 단계만 골라 담은 입문 루틴",
+      morning: [
+        { title: "토너", sub: "" },
+        { title: "수분 크림", sub: "" },
+        { title: "선크림", sub: "" }
+      ],
+      evening: [
+        { title: "클렌징", sub: "" },
+        { title: "토너", sub: "" },
+        { title: "수분 크림", sub: "" }
+      ]
+    },
+    {
+      id: "dry",
+      name: "건성 추천",
+      desc: "유분·수분 보강 단계가 더해진 풀케어",
+      morning: [
+        { title: "토너", sub: "" },
+        { title: "에센스", sub: "" },
+        { title: "수분 크림", sub: "" },
+        { title: "페이스 오일", sub: "" },
+        { title: "선크림", sub: "" }
+      ],
+      evening: [
+        { title: "클렌징 오일", sub: "" },
+        { title: "폼 클렌저", sub: "" },
+        { title: "토너", sub: "" },
+        { title: "에센스", sub: "" },
+        { title: "앰풀", sub: "" },
+        { title: "수분 크림", sub: "" }
+      ]
+    },
+    {
+      id: "oily",
+      name: "지성·트러블 추천",
+      desc: "BHA·산뜻한 텍스처 위주의 가벼운 루틴",
+      morning: [
+        { title: "토너", sub: "" },
+        { title: "세럼", sub: "" },
+        { title: "젤 크림", sub: "" },
+        { title: "선크림", sub: "" }
+      ],
+      evening: [
+        { title: "클렌징 오일", sub: "" },
+        { title: "폼 클렌저", sub: "" },
+        { title: "BHA 토너", sub: "" },
+        { title: "세럼", sub: "" },
+        { title: "젤 크림", sub: "" }
+      ]
+    },
+    {
+      id: "sensitive",
+      name: "민감성 추천",
+      desc: "자극을 줄인 진정 위주의 부드러운 루틴",
+      morning: [
+        { title: "미온수 세안", sub: "" },
+        { title: "진정 토너", sub: "" },
+        { title: "진정 크림", sub: "" },
+        { title: "무기자차 선크림", sub: "" }
+      ],
+      evening: [
+        { title: "워터 클렌저", sub: "" },
+        { title: "진정 토너", sub: "" },
+        { title: "진정 세럼", sub: "" },
+        { title: "진정 크림", sub: "" }
+      ]
+    }
+  ];
+
+  /* ============ 상태 ============ */
+  const STORAGE_ROUTINE = "routine_check_my_routine";
+  const STORAGE_CHECK = "routine_check_state";
+  const today = "2026-04-30";
+
+  let userRoutine = JSON.parse(localStorage.getItem(STORAGE_ROUTINE) || "null");
+  // shape: { morning: [{id, title, sub}], evening: [{id, title, sub}] } or null
+  let checkState = JSON.parse(localStorage.getItem(STORAGE_CHECK) || "{}");
+  if (!checkState[today]) checkState[today] = {};
+
+  // 마이그레이션: 기존 boolean true → "done"으로 변환
+  Object.keys(checkState).forEach(d => {
+    Object.keys(checkState[d]).forEach(id => {
+      if (checkState[d][id] === true) checkState[d][id] = "done";
+      if (checkState[d][id] === false) delete checkState[d][id];
+    });
+  });
+
+  function saveRoutine() { localStorage.setItem(STORAGE_ROUTINE, JSON.stringify(userRoutine)); }
+  function saveCheck() { localStorage.setItem(STORAGE_CHECK, JSON.stringify(checkState)); }
+  function hasRoutine() { return !!userRoutine; }
+  function hasSteps() {
+    return hasRoutine() && (userRoutine.morning.length + userRoutine.evening.length > 0);
+  }
+
+  function nextId() { return "s" + Date.now() + Math.floor(Math.random()*1000); }
+
+  /* ============ 빈 상태 토글 ============ */
+  function refreshEmptyStates() {
+    const has = hasRoutine();
+    const steps = hasSteps();
+
+    // 오늘/기록 화면: 단계 없으면 빈 상태
+    document.getElementById("today-empty").style.display = steps ? "none" : "block";
+    document.getElementById("today-content").style.display = steps ? "block" : "none";
+    document.getElementById("history-empty").style.display = steps ? "none" : "block";
+    document.getElementById("history-content").style.display = steps ? "block" : "none";
+
+    // 편집 화면: 객체 자체가 없을 때만 빈 상태
+    document.getElementById("edit-empty").style.display = has ? "none" : "block";
+    document.getElementById("edit-content").style.display = has ? "block" : "none";
+    document.getElementById("done-edit").style.display = has ? "block" : "none";
+
+    // 빈 상태(today)에서 두 시나리오 분기 — 카피와 CTA만 다르게, 예시는 항상 노출
+    const todayEmptyTitle = document.querySelector("#today-empty .empty-title");
+    const todayEmptyDesc = document.querySelector("#today-empty .empty-desc");
+    const todayCta = document.getElementById("cta-create-routine");
+
+    if (!has) {
+      todayEmptyTitle.textContent = "아직 등록한 루틴이 없어요";
+      todayEmptyDesc.innerHTML = "매일 같은 단계를 빠뜨리지 않게<br/>나만의 루틴을 먼저 만들어 볼게요";
+      todayCta.textContent = "내 루틴 만들기";
+      todayCta.dataset.action = "create";
+    } else if (!steps) {
+      todayEmptyTitle.textContent = "아직 단계가 없어요";
+      todayEmptyDesc.innerHTML = "내 루틴 화면에서 단계를 더하면<br/>여기서 매일 체크할 수 있어요";
+      todayCta.textContent = "내 루틴으로 가기";
+      todayCta.dataset.action = "goedit";
+    }
+
+    // 헤더 카피
+    const greet = document.getElementById("today-greeting");
+    if (!steps) {
+      greet.innerHTML = `안녕하세요,<br/><span class="accent">루틴부터 만들어 볼까요</span>`;
+    } else {
+      greet.innerHTML = `오늘 루틴,<br/><span class="accent">하나씩 체크해 볼까요</span>`;
+    }
+  }
+
+  /* ============ 오늘 view 렌더 ============ */
+  function statusOf(id) { return checkState[today][id]; } // "done" | "rest" | undefined
+
+  function buildItemEl(item, period) {
+    const status = statusOf(item.id);
+    const memo = getMemo(item.id);
+    const el = document.createElement("div");
+    el.className = "item" + (status === "done" ? " done" : status === "rest" ? " rest" : "");
+    el.dataset.id = item.id;
+    el.dataset.period = period;
+    const subOrMemo = item.sub
+      ? `<div class="item-sub">${escapeHtml(item.sub)}</div>`
+      : "";
+    let trailingTag = "";
+    if (status === "rest") {
+      trailingTag = `<span class="rest-tag">오늘 휴식</span>`;
+    } else if (memo) {
+      trailingTag = `<span class="memo-tag">${escapeHtml(memo)}</span>`;
+    }
+    el.innerHTML = `
+      <div class="check">
+        <svg class="check-icon" viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg>
+        <span class="rest-icon"></span>
+      </div>
+      <div class="item-text">
+        <div class="item-title">${escapeHtml(item.title)}</div>
+        ${subOrMemo}
+      </div>
+      ${trailingTag}
+    `;
+    attachStepGestures(el, item, period);
+    return el;
+  }
+
+  function renderList(containerId, items, period, metaId) {
+    const root = document.getElementById(containerId);
+    root.innerHTML = "";
+    items.forEach(item => root.appendChild(buildItemEl(item, period)));
+    refreshMeta(period, items, metaId);
+  }
+
+  function refreshMeta(period, items, metaId) {
+    const total = items.length;
+    const restCount = items.filter(i => statusOf(i.id) === "rest").length;
+    const doneCount = items.filter(i => statusOf(i.id) === "done").length;
+    const active = total - restCount;
+    const el = document.getElementById(metaId);
+    if (active === 0) {
+      el.textContent = `오늘 휴식 ${restCount}`;
+    } else {
+      el.textContent = `${doneCount} / ${active}` + (restCount ? ` · 휴식 ${restCount}` : "");
+    }
+  }
+
+  function refreshAllMetas() {
+    if (!userRoutine) return;
+    refreshMeta("morning", userRoutine.morning, "morning-meta");
+    refreshMeta("evening", userRoutine.evening, "evening-meta");
+  }
+
+  function renderProgress() {
+    const all = [...userRoutine.morning, ...userRoutine.evening];
+    const restCount = all.filter(i => statusOf(i.id) === "rest").length;
+    const active = all.length - restCount;
+    const done = all.filter(i => statusOf(i.id) === "done").length;
+    const pct = active ? Math.round(done / active * 100) : 0;
+    document.getElementById("progress-count").textContent = done;
+    document.getElementById("progress-total").textContent = active;
+    document.getElementById("progress-percent").textContent = pct + "%";
+    document.getElementById("progress-ring").style.background =
+      `conic-gradient(var(--accent) 0% ${pct}%, var(--accent-soft) ${pct}% 100%)`;
+  }
+
+  function renderWeek() {
+    const labels = ["월","화","수","목","금","토","일"];
+    const dummyDone = [true, true, true, false, false, false, false];
+    const todayIdx = 3;
+    const root = document.getElementById("week");
+    root.innerHTML = "";
+    labels.forEach((label, i) => {
+      const cls = dummyDone[i] ? " done" : (i === todayIdx ? " today" : "");
+      const day = document.createElement("div");
+      day.className = "day" + cls;
+      day.innerHTML = `
+        <div class="day-label">${label}</div>
+        <div class="day-dot">${dummyDone[i] ? "✓" : (i+27)}</div>
+      `;
+      root.appendChild(day);
+    });
+  }
+
+  function allDone() {
+    if (!hasRoutine()) return false;
+    const all = [...userRoutine.morning, ...userRoutine.evening];
+    const active = all.filter(i => statusOf(i.id) !== "rest");
+    return active.length > 0 && active.every(i => statusOf(i.id) === "done");
+  }
+
+  /* ============ 메모 (H) ============ */
+  const STORAGE_NOTES = "routine_check_notes";
+  let noteState = JSON.parse(localStorage.getItem(STORAGE_NOTES) || "{}");
+  if (!noteState[today]) noteState[today] = {};
+  function saveNotes() { localStorage.setItem(STORAGE_NOTES, JSON.stringify(noteState)); }
+  function getMemo(itemId) { return (noteState[today] || {})[itemId] || ""; }
+  function setMemoFor(itemId, text) {
+    if (!noteState[today]) noteState[today] = {};
+    if (text) noteState[today][itemId] = text;
+    else delete noteState[today][itemId];
+    saveNotes();
+  }
+
+  /* ============ 단계 인터랙션 ============ */
+  const LONG_PRESS_MS = 500;
+
+  function setStatus(itemId, period, newStatus) {
+    if (newStatus) checkState[today][itemId] = newStatus;
+    else delete checkState[today][itemId];
+    saveCheck();
+
+    const oldEl = document.querySelector(`#${period}-list .item[data-id="${itemId}"]`);
+    if (!oldEl) return null;
+    const items = userRoutine[period];
+    const item = items.find(i => i.id === itemId);
+    const newEl = buildItemEl(item, period);
+    oldEl.replaceWith(newEl);
+
+    refreshAllMetas();
+    renderProgress();
+    return newEl;
+  }
+
+  /* C: 섹션 부분 완료 추적 */
+  let sectionDoneCache = { morning: false, evening: false };
+  function isSectionDone(period) {
+    if (!hasSteps()) return false;
+    const items = userRoutine[period];
+    if (items.length === 0) return false;
+    const active = items.filter(i => statusOf(i.id) !== "rest");
+    if (active.length === 0) return false;
+    return active.every(i => statusOf(i.id) === "done");
+  }
+  function flashSectionMeta(period) {
+    const metaId = period + "-meta";
+    const el = document.getElementById(metaId);
+    el.textContent = period === "morning" ? "✨ 아침 끝!" : "✨ 저녁 끝!";
+    el.classList.add("complete");
+    setTimeout(() => {
+      el.classList.remove("complete");
+      refreshMeta(period, userRoutine[period], metaId);
+    }, 1500);
+  }
+  function checkSectionTransitions() {
+    ["morning","evening"].forEach(p => {
+      const now = isSectionDone(p);
+      if (now && !sectionDoneCache[p]) flashSectionMeta(p);
+      sectionDoneCache[p] = now;
+    });
+  }
+
+  /* B: 다음 단계 강조 */
+  function updateNextHighlight(autoScroll) {
+    document.querySelectorAll(".item.next").forEach(el => el.classList.remove("next"));
+    if (!hasSteps()) return;
+    const order = [...userRoutine.morning.map(i => ({...i, period:"morning"})),
+                   ...userRoutine.evening.map(i => ({...i, period:"evening"}))];
+    const next = order.find(i => statusOf(i.id) === undefined);
+    if (!next) return;
+    const el = document.querySelector(`#${next.period}-list .item[data-id="${next.id}"]`);
+    if (!el) return;
+    el.classList.add("next");
+    if (autoScroll) {
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }
+
+  /* D: 하루 완료 풀스크린 */
+  let celebrateTimer;
+  function celebrateDay() {
+    const flagKey = "routine_check_celebrated_" + today;
+    if (localStorage.getItem(flagKey)) return;
+    localStorage.setItem(flagKey, "1");
+
+    const morning = userRoutine.morning.filter(i => statusOf(i.id) === "done").length;
+    const evening = userRoutine.evening.filter(i => statusOf(i.id) === "done").length;
+    document.getElementById("celebrate-sub").textContent =
+      `아침 ${morning}단계 · 저녁 ${evening}단계 모두 완료`;
+    // 더미 스트릭
+    document.getElementById("celebrate-streak").textContent = "🔥 4일 연속 완료";
+
+    const ov = document.getElementById("celebrate-overlay");
+    ov.classList.add("show");
+    clearTimeout(celebrateTimer);
+    celebrateTimer = setTimeout(() => ov.classList.remove("show"), 2200);
+    // 탭하면 즉시 닫기
+    ov.onclick = () => {
+      ov.classList.remove("show");
+      clearTimeout(celebrateTimer);
+    };
+  }
+
+  function handleTap(item, period) {
+    const cur = statusOf(item.id);
+    if (cur === "done") {
+      setStatus(item.id, period, null);
+    } else {
+      setStatus(item.id, period, "done");
+    }
+    checkSectionTransitions();
+    updateNextHighlight(true);
+    if (allDone()) {
+      celebrateDay();
+    }
+  }
+
+  /* H: 길게 누르기 → 액션 시트 */
+  let actionTargetItem = null;
+  let actionTargetPeriod = null;
+  function openStepActionSheet(item, period) {
+    actionTargetItem = item;
+    actionTargetPeriod = period;
+    document.getElementById("step-action-title").textContent = item.title;
+    const memo = getMemo(item.id);
+    document.getElementById("step-action-desc").textContent =
+      memo ? `메모: ${memo}` : "";
+    const cur = statusOf(item.id);
+    document.getElementById("action-rest-label").textContent =
+      cur === "rest" ? "휴식 해제" : "오늘 휴식";
+    document.getElementById("action-memo-label").textContent =
+      memo ? "메모 수정" : "메모 남기기";
+    document.getElementById("sheet-backdrop").classList.add("show");
+    document.getElementById("sheet-step-action").classList.add("show");
+  }
+
+  function openMemoSheet(item, period) {
+    actionTargetItem = item;
+    actionTargetPeriod = period;
+    document.getElementById("memo-title").textContent = item.title;
+    document.getElementById("memo-input").value = getMemo(item.id);
+    document.getElementById("sheet-backdrop").classList.add("show");
+    document.getElementById("sheet-memo").classList.add("show");
+    setTimeout(() => document.getElementById("memo-input").focus(), 250);
+  }
+
+  document.querySelectorAll('#sheet-step-action .action-row').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const action = btn.dataset.action;
+      if (!actionTargetItem) return;
+      if (action === "rest") {
+        const cur = statusOf(actionTargetItem.id);
+        setStatus(actionTargetItem.id, actionTargetPeriod, cur === "rest" ? null : "rest");
+        checkSectionTransitions();
+        updateNextHighlight(false);
+        closeAllSheets();
+      } else if (action === "memo") {
+        // 액션 시트 닫고 메모 시트 열기
+        document.getElementById("sheet-step-action").classList.remove("show");
+        const item = actionTargetItem, period = actionTargetPeriod;
+        setTimeout(() => openMemoSheet(item, period), 200);
+      }
+    });
+  });
+
+  document.getElementById("memo-save").addEventListener("click", () => {
+    if (!actionTargetItem) return;
+    const text = document.getElementById("memo-input").value.trim();
+    setMemoFor(actionTargetItem.id, text);
+    // 해당 아이템 다시 그리기
+    const items = userRoutine[actionTargetPeriod];
+    const oldEl = document.querySelector(
+      `#${actionTargetPeriod}-list .item[data-id="${actionTargetItem.id}"]`);
+    if (oldEl) {
+      const newEl = buildItemEl(actionTargetItem, actionTargetPeriod);
+      oldEl.replaceWith(newEl);
+    }
+    closeAllSheets();
+  });
+
+  function attachStepGestures(el, item, period) {
+    let pressTimer = null;
+    let longFired = false;
+    let startX = 0, startY = 0;
+
+    const start = (x, y) => {
+      longFired = false;
+      startX = x; startY = y;
+      pressTimer = setTimeout(() => {
+        longFired = true;
+        openStepActionSheet(item, period);
+      }, LONG_PRESS_MS);
+    };
+    const cancel = () => {
+      if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+    };
+    const move = (x, y) => {
+      if (Math.abs(x - startX) > 6 || Math.abs(y - startY) > 6) cancel();
+    };
+
+    el.addEventListener("pointerdown", e => {
+      if (e.button !== undefined && e.button !== 0) return;
+      start(e.clientX, e.clientY);
+    });
+    el.addEventListener("pointermove", e => move(e.clientX, e.clientY));
+    el.addEventListener("pointerup", e => {
+      cancel();
+      if (!longFired) handleTap(item, period);
+    });
+    el.addEventListener("pointercancel", cancel);
+    el.addEventListener("pointerleave", cancel);
+    el.addEventListener("contextmenu", e => e.preventDefault());
+  }
+
+
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    if (msg) t.textContent = msg;
+    else t.textContent = "오늘 루틴 완료! 🌿";
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+  }
+
+  function renderToday() {
+    if (!hasRoutine()) return;
+    renderList("morning-list", userRoutine.morning, "morning", "morning-meta");
+    renderList("evening-list", userRoutine.evening, "evening", "evening-meta");
+    renderProgress();
+    // 섹션 완료 캐시 초기화 (재진입 시 잘못된 flash 방지)
+    sectionDoneCache.morning = isSectionDone("morning");
+    sectionDoneCache.evening = isSectionDone("evening");
+    updateNextHighlight(false);
+  }
+
+  /* ============ 기록 view 렌더 ============ */
+  function renderCalendar() {
+    const root = document.getElementById("calendar");
+    root.innerHTML = "";
+    ["월","화","수","목","금","토","일"].forEach(l => {
+      const lbl = document.createElement("div");
+      lbl.className = "cal-label";
+      lbl.textContent = l;
+      root.appendChild(lbl);
+    });
+    const startOffset = 2;
+    const daysInMonth = 30;
+    const todayDate = 30;
+    const levels = [
+      0,3,3,2,3,3,1,3,3,3,3,2,1,3,3,3,3,3,3,2,3,3,3,1,2,3,3,3,3,3
+    ];
+    for (let i = 0; i < startOffset; i++) {
+      const empty = document.createElement("div");
+      empty.className = "cal-day";
+      root.appendChild(empty);
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const lv = levels[d-1] || 0;
+      const cell = document.createElement("div");
+      const isToday = d === todayDate;
+      cell.className = "cal-day in-month" + (lv === 3 ? " l3" : "") + (isToday ? " today" : "");
+      cell.innerHTML = `${lv > 0 ? `<div class="level l${lv}"></div>` : ""}<span class="num">${d}</span>`;
+      root.appendChild(cell);
+    }
+  }
+
+  function renderHistoryList() {
+    const root = document.getElementById("history-list");
+    root.innerHTML = "";
+    const data = [
+      { date: "4/30", pct: 27 }, { date: "4/29", pct: 100 },
+      { date: "4/28", pct: 100 }, { date: "4/27", pct: 91 },
+      { date: "4/26", pct: 73 }, { date: "4/25", pct: 100 },
+      { date: "4/24", pct: 82 }
+    ];
+    data.forEach(d => {
+      const el = document.createElement("div");
+      el.className = "h-item";
+      el.innerHTML = `
+        <div class="h-date">${d.date}</div>
+        <div class="h-bar-wrap"><div class="h-bar" style="width:${d.pct}%"></div></div>
+        <div class="h-pct">${d.pct}%</div>
+      `;
+      root.appendChild(el);
+    });
+  }
+
+  /* ============ 편집 view 렌더 ============ */
+  function renderEditList(containerId, items, period, metaId) {
+    const root = document.getElementById(containerId);
+    root.innerHTML = "";
+    items.forEach(item => {
+      const el = document.createElement("div");
+      el.className = "edit-item";
+      el.innerHTML = `
+        <div class="handle">
+          <svg viewBox="0 0 16 16">
+            <circle cx="6" cy="3" r="1.3"/><circle cx="10" cy="3" r="1.3"/>
+            <circle cx="6" cy="8" r="1.3"/><circle cx="10" cy="8" r="1.3"/>
+            <circle cx="6" cy="13" r="1.3"/><circle cx="10" cy="13" r="1.3"/>
+          </svg>
+        </div>
+        <div class="edit-item-text" data-edit-text style="cursor:pointer">
+          <div class="edit-title">${escapeHtml(item.title)}</div>
+          ${item.sub
+            ? `<div class="edit-sub">${escapeHtml(item.sub)}</div>`
+            : `<div class="edit-sub" style="color:var(--ink-mute);opacity:0.7">탭해서 사용 제품 추가</div>`}
+        </div>
+        <button class="delete-btn" data-id="${item.id}" data-period="${period}">
+          <svg viewBox="0 0 16 16"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg>
+        </button>
+      `;
+      // 텍스트 영역 클릭 → 단계 수정 시트
+      el.querySelector("[data-edit-text]").addEventListener("click", () => {
+        openEditStepSheet(item, period);
+      });
+      root.appendChild(el);
+    });
+
+    const add = document.createElement("div");
+    add.className = "add-row";
+    add.innerHTML = `<div class="plus">+</div><div>단계 추가</div>`;
+    add.addEventListener("click", () => openAddSheet(period));
+    root.appendChild(add);
+
+    document.getElementById(metaId).textContent = `${items.length} 단계`;
+
+    root.querySelectorAll(".delete-btn").forEach(btn => {
+      btn.addEventListener("click", e => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        const p = btn.dataset.period;
+        userRoutine[p] = userRoutine[p].filter(i => i.id !== id);
+        delete checkState[today][id];
+        saveRoutine();
+        saveCheck();
+        renderEdit();
+        renderToday();
+        showToast("단계를 삭제했어요");
+      });
+    });
+  }
+
+  /* 단계 수정 시트 */
+  let editStepTarget = null;
+  let editStepPeriod = null;
+  function openEditStepSheet(item, period) {
+    editStepTarget = item;
+    editStepPeriod = period;
+    document.getElementById("edit-step-title").value = item.title;
+    document.getElementById("edit-step-sub").value = item.sub || "";
+    document.getElementById("sheet-backdrop").classList.add("show");
+    document.getElementById("sheet-edit-step").classList.add("show");
+    setTimeout(() => document.getElementById("edit-step-sub").focus(), 250);
+  }
+  document.getElementById("edit-step-save").addEventListener("click", () => {
+    if (!editStepTarget) return;
+    const title = document.getElementById("edit-step-title").value.trim();
+    const sub = document.getElementById("edit-step-sub").value.trim();
+    if (!title) {
+      document.getElementById("edit-step-title").focus();
+      return;
+    }
+    const items = userRoutine[editStepPeriod];
+    const target = items.find(i => i.id === editStepTarget.id);
+    if (target) {
+      target.title = title;
+      target.sub = sub;
+      saveRoutine();
+      renderEdit();
+      renderToday();
+    }
+    closeAllSheets();
+    showToast("저장했어요");
+  });
+
+  function renderEdit() {
+    if (!hasRoutine()) return;
+    renderEditList("edit-morning-list", userRoutine.morning, "morning", "edit-morning-meta");
+    renderEditList("edit-evening-list", userRoutine.evening, "evening", "edit-evening-meta");
+  }
+
+  /* ============ 시트 (프리셋) ============ */
+  let selectedPreset = null;
+
+  function renderPresets() {
+    const root = document.getElementById("preset-list");
+    root.innerHTML = "";
+    PRESETS.forEach(p => {
+      const total = p.morning.length + p.evening.length;
+      const el = document.createElement("div");
+      el.className = "preset" + (selectedPreset === p.id ? " selected" : "");
+
+      const stepsHtml = total === 0
+        ? `<div class="preset-steps"><div class="preset-empty">단계 없음 — 직접 채워넣어요</div></div>`
+        : `<div class="preset-steps">
+            <div class="preset-row">
+              <div class="preset-row-label">아침</div>
+              <div class="preset-chips">
+                ${p.morning.map(s => `<span class="chip">${escapeHtml(s.title)}</span>`).join("")}
+              </div>
+            </div>
+            <div class="preset-row">
+              <div class="preset-row-label">저녁</div>
+              <div class="preset-chips">
+                ${p.evening.map(s => `<span class="chip">${escapeHtml(s.title)}</span>`).join("")}
+              </div>
+            </div>
+          </div>`;
+
+      el.innerHTML = `
+        <div class="preset-head">
+          <div class="preset-name">${p.name}</div>
+          <div class="preset-count">${total > 0 ? total + "단계" : "비어있음"}</div>
+        </div>
+        <div class="preset-desc">${p.desc}</div>
+        ${stepsHtml}
+      `;
+      el.addEventListener("click", () => {
+        selectedPreset = p.id;
+        renderPresets();
+      });
+      root.appendChild(el);
+    });
+  }
+
+  function openPresetSheet() {
+    selectedPreset = "basic";
+    renderPresets();
+    document.getElementById("sheet-backdrop").classList.add("show");
+    document.getElementById("sheet-preset").classList.add("show");
+  }
+
+  function closeAllSheets() {
+    document.getElementById("sheet-backdrop").classList.remove("show");
+    document.getElementById("sheet-preset").classList.remove("show");
+    document.getElementById("sheet-add").classList.remove("show");
+    const a = document.getElementById("sheet-step-action");
+    const m = document.getElementById("sheet-memo");
+    const e = document.getElementById("sheet-edit-step");
+    if (a) a.classList.remove("show");
+    if (m) m.classList.remove("show");
+    if (e) e.classList.remove("show");
+  }
+
+  document.getElementById("preset-confirm").addEventListener("click", () => {
+    if (!selectedPreset) return;
+    const preset = PRESETS.find(p => p.id === selectedPreset);
+    userRoutine = {
+      morning: preset.morning.map(i => ({ id: nextId(), title: i.title, sub: i.sub })),
+      evening: preset.evening.map(i => ({ id: nextId(), title: i.title, sub: i.sub }))
+    };
+    saveRoutine();
+    refreshEmptyStates();
+    renderToday();
+    renderEdit();
+    closeAllSheets();
+    if (preset.id === "scratch") {
+      // 빈 루틴 시작 → 편집 view로 이동 + 단계 추가 시트 자동
+      switchView("edit");
+      setTimeout(() => openAddSheet("morning"), 300);
+    } else {
+      showToast(preset.name + " 적용 완료");
+    }
+  });
+
+  /* ============ 시트 (단계 추가) ============ */
+  const QUICK_STEPS = [
+    "토너", "에센스", "세럼", "앰풀", "수분 크림", "선크림",
+    "클렌징 오일", "폼 클렌저", "토너 패드", "아이크림",
+    "페이스 오일", "슬리핑 마스크"
+  ];
+
+  let addPeriod = "morning";
+  let selectedQuick = [];
+
+  function renderQuickChips() {
+    const root = document.getElementById("add-chips");
+    root.innerHTML = "";
+    QUICK_STEPS.forEach(name => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "add-chip" + (selectedQuick.includes(name) ? " active" : "");
+      btn.textContent = name;
+      btn.addEventListener("click", () => {
+        if (selectedQuick.includes(name)) {
+          selectedQuick = selectedQuick.filter(n => n !== name);
+        } else {
+          selectedQuick.push(name);
+        }
+        renderQuickChips();
+        renderSelectedSummary();
+      });
+      root.appendChild(btn);
+    });
+  }
+
+  function renderSelectedSummary() {
+    const el = document.getElementById("selected-summary");
+    if (selectedQuick.length === 0) {
+      el.classList.remove("show");
+      return;
+    }
+    el.classList.add("show");
+    el.innerHTML = `<strong>${selectedQuick.length}개</strong> 선택됨 · ${selectedQuick.join(", ")}`;
+  }
+
+  function openAddSheet(period) {
+    addPeriod = period || "morning";
+    selectedQuick = [];
+    document.querySelectorAll("#add-segment .seg-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.period === addPeriod);
+    });
+    document.getElementById("add-context").textContent =
+      addPeriod === "morning" ? "아침 루틴에 새 단계를 더해요" : "저녁 루틴에 새 단계를 더해요";
+    document.getElementById("add-title").value = "";
+    document.getElementById("add-sub").value = "";
+    renderQuickChips();
+    renderSelectedSummary();
+    document.getElementById("sheet-backdrop").classList.add("show");
+    document.getElementById("sheet-add").classList.add("show");
+  }
+
+  document.querySelectorAll("#add-segment .seg-btn").forEach(b => {
+    b.addEventListener("click", () => {
+      addPeriod = b.dataset.period;
+      document.querySelectorAll("#add-segment .seg-btn").forEach(o =>
+        o.classList.toggle("active", o === b));
+      document.getElementById("add-context").textContent =
+        addPeriod === "morning" ? "아침 루틴에 새 단계를 더해요" : "저녁 루틴에 새 단계를 더해요";
+    });
+  });
+
+  document.getElementById("add-confirm").addEventListener("click", () => {
+    const title = document.getElementById("add-title").value.trim();
+    const sub = document.getElementById("add-sub").value.trim();
+
+    if (selectedQuick.length === 0 && !title) {
+      // 둘 다 비어있으면 input 포커스
+      document.getElementById("add-title").focus();
+      return;
+    }
+
+    if (!userRoutine) userRoutine = { morning: [], evening: [] };
+
+    // 칩으로 선택한 단계들
+    selectedQuick.forEach(name => {
+      userRoutine[addPeriod].push({ id: nextId(), title: name, sub: "" });
+    });
+
+    // 직접 입력한 단계
+    if (title) {
+      userRoutine[addPeriod].push({ id: nextId(), title, sub });
+    }
+
+    saveRoutine();
+    refreshEmptyStates();
+    renderToday();
+    renderEdit();
+    closeAllSheets();
+
+    const total = selectedQuick.length + (title ? 1 : 0);
+    showToast(total > 1 ? `${total}개 단계를 추가했어요` : "단계를 추가했어요");
+  });
+
+  /* ============ 공통 시트 닫기 ============ */
+  document.getElementById("sheet-backdrop").addEventListener("click", closeAllSheets);
+  document.querySelectorAll("[data-sheet-close]").forEach(b =>
+    b.addEventListener("click", closeAllSheets));
+
+  /* ============ CTA ============ */
+  document.getElementById("cta-create-routine").addEventListener("click", () => {
+    const action = document.getElementById("cta-create-routine").dataset.action || "create";
+    if (action === "goedit") {
+      switchView("edit");
+    } else {
+      openPresetSheet();
+    }
+  });
+  document.getElementById("cta-create-routine-2").addEventListener("click", openPresetSheet);
+
+  /* ============ TEST: 초기화 ============ */
+  document.getElementById("reset-all").addEventListener("click", () => {
+    if (!confirm("모든 루틴과 체크 기록을 지우고 첫 진입 상태로 되돌릴까요?")) return;
+    localStorage.removeItem(STORAGE_ROUTINE);
+    localStorage.removeItem(STORAGE_CHECK);
+    localStorage.removeItem(STORAGE_NOTES);
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith("routine_check_celebrated_")) localStorage.removeItem(k);
+    });
+    userRoutine = null;
+    checkState = { [today]: {} };
+    noteState = { [today]: {} };
+    sectionDoneCache = { morning: false, evening: false };
+    refreshEmptyStates();
+    switchView("today");
+    showToast("초기화 완료");
+  });
+
+  /* ============ 탭 전환 ============ */
+  function switchView(target) {
+    document.querySelectorAll(".tab").forEach(t =>
+      t.classList.toggle("active", t.dataset.view === target));
+    document.querySelectorAll(".view").forEach(v =>
+      v.classList.toggle("active", v.id === "view-" + target));
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+  document.querySelectorAll(".tab").forEach(tab => {
+    tab.addEventListener("click", () => switchView(tab.dataset.view));
+  });
+  document.getElementById("done-edit").addEventListener("click", () => switchView("today"));
+
+  /* ============ util ============ */
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  }
+
+  /* ============ 초기 렌더 ============ */
+  localStorage.removeItem("routine_check_palette");
+  refreshEmptyStates();
+  renderToday();
+  renderWeek();
+  renderCalendar();
+  renderHistoryList();
+  renderEdit();
+</script>
+</body>
+</html>
