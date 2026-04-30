@@ -541,6 +541,40 @@
   }
   .tab.disabled { opacity: 0.35; pointer-events: none; }
 
+  /* 한 번에 완료 버튼 */
+  .bulk-complete-row {
+    margin: -16px 24px 24px;
+    display: flex;
+    justify-content: center;
+  }
+  .bulk-complete-row.hidden { display: none; }
+  .bulk-complete-btn {
+    appearance: none;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.14s ease;
+  }
+  .bulk-complete-btn:active {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent-deep);
+  }
+  .bulk-complete-btn svg {
+    width: 14px; height: 14px;
+    fill: none; stroke: currentColor;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
   /* D: 하루 완료 풀스크린 셀러브레이션 */
   .celebrate-overlay {
     position: fixed; inset: 0;
@@ -1015,6 +1049,13 @@
         <div class="ring" id="progress-ring">
           <span id="progress-percent">0%</span>
         </div>
+      </div>
+
+      <div class="bulk-complete-row" id="bulk-complete-row">
+        <button class="bulk-complete-btn" id="bulk-complete-btn">
+          <svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg>
+          <span id="bulk-complete-label">오늘 루틴 모두 완료</span>
+        </button>
       </div>
 
       <div class="section">
@@ -1566,6 +1607,43 @@
     document.getElementById("progress-percent").textContent = pct + "%";
     document.getElementById("progress-ring").style.background =
       `conic-gradient(var(--accent) 0% ${pct}%, var(--accent-soft) ${pct}% 100%)`;
+
+    // 한 번에 완료 버튼 가시성
+    const remaining = active - done;
+    const row = document.getElementById("bulk-complete-row");
+    if (row) {
+      if (remaining > 0) {
+        row.classList.remove("hidden");
+        document.getElementById("bulk-complete-label").textContent =
+          remaining === active
+            ? "오늘 루틴 모두 완료"
+            : `남은 ${remaining}단계 모두 완료`;
+      } else {
+        row.classList.add("hidden");
+      }
+    }
+  }
+
+  function completeAllRemaining() {
+    if (!hasSteps()) return;
+    const all = [...userRoutine.morning, ...userRoutine.evening];
+    const todoIds = all
+      .filter(i => statusOf(i.id) !== "done" && statusOf(i.id) !== "rest")
+      .map(i => i.id);
+    if (todoIds.length === 0) return;
+
+    const beforeMorning = sectionDoneCache.morning;
+    const beforeEvening = sectionDoneCache.evening;
+
+    todoIds.forEach(id => { checkState[today][id] = "done"; });
+    saveCheck();
+    renderToday();
+
+    if (!beforeMorning && isSectionDone("morning")) flashSectionMeta("morning");
+    if (!beforeEvening && isSectionDone("evening")) flashSectionMeta("evening");
+
+    if (allDone()) celebrateDay();
+    showToast(`${todoIds.length}단계를 완료로 표시했어요`);
   }
 
   /* 일자별 완료율 계산 (현재 루틴 기준) */
@@ -2338,6 +2416,8 @@
   document.getElementById("cta-create-routine-2").addEventListener("click", openPresetSheet);
 
   /* ============ TEST: 초기화 ============ */
+  document.getElementById("bulk-complete-btn").addEventListener("click", completeAllRemaining);
+
   document.getElementById("reset-all").addEventListener("click", () => {
     if (!confirm("모든 루틴과 체크 기록을 지우고 첫 진입 상태로 되돌릴까요?")) return;
     localStorage.removeItem(STORAGE_ROUTINE);
