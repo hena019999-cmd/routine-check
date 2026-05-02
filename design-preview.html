@@ -418,6 +418,148 @@
   .cal-day.l3 { color: #fff; font-weight: 600; }
   .cal-day .num { position: relative; z-index: 1; }
   .cal-day.today { box-shadow: inset 0 0 0 2px var(--accent); }
+  .cal-day.clickable { cursor: pointer; }
+  .cal-day.clickable:hover { background: var(--bg); }
+  .cal-day.l3.clickable:hover { background: var(--bg); }
+  .cal-day.selected {
+    box-shadow: inset 0 0 0 2px var(--ink);
+  }
+  .cal-day.l3.selected { box-shadow: inset 0 0 0 2px var(--ink); }
+
+  /* 선택된 날짜 인라인 상세 */
+  .day-detail-inline {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+  }
+  .day-detail-empty-block {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--ink-mute);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .day-detail-summary-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--accent-soft);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+  }
+  .day-detail-pct {
+    flex-shrink: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--accent-deep);
+    letter-spacing: -0.02em;
+  }
+  .day-detail-stat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .day-detail-stat strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .day-detail-section { margin-bottom: 14px; }
+  .day-detail-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+  .day-detail-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .day-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg);
+    border-radius: 10px;
+  }
+  .day-detail-status {
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--line-strong);
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface);
+    position: relative;
+  }
+  .day-detail-status.done {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .day-detail-status.rest {
+    border-style: dashed;
+  }
+  .day-detail-status.rest::before {
+    content: "";
+    width: 8px;
+    height: 1.5px;
+    background: var(--ink-mute);
+    border-radius: 999px;
+  }
+  .day-detail-status svg {
+    width: 10px; height: 10px;
+    fill: none; stroke: #fff;
+    stroke-width: 3; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .day-detail-row .step-name {
+    flex: 1;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .day-detail-row.done .step-name {
+    color: var(--ink-mute);
+    text-decoration: line-through;
+    text-decoration-color: var(--line-strong);
+  }
+  .day-detail-row.rest .step-name { color: var(--ink-mute); }
+  .day-detail-status-label {
+    font-size: 11px;
+    color: var(--ink-mute);
+    flex-shrink: 0;
+    font-weight: 500;
+  }
+  .day-detail-row.done .day-detail-status-label { color: var(--accent-deep); }
+  .day-detail-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--ink-mute);
+    font-size: 13px;
+    background: var(--bg);
+    border-radius: 10px;
+  }
+  .day-detail-memo {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--accent-deep);
+    background: var(--accent-soft);
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-left: 28px;
+  }
 
   .legend {
     display: flex; align-items: center; gap: 8px;
@@ -574,7 +716,7 @@
 
   /* 오늘 루틴 종료 버튼 */
   .bulk-complete-row {
-    margin: -16px 24px 24px;
+    margin: 4px 24px 28px;
     display: flex;
     justify-content: center;
   }
@@ -608,10 +750,12 @@
     background: var(--accent-deep);
   }
   .bulk-complete-btn.finished {
-    opacity: 0.55;
-    cursor: default;
-    pointer-events: none;
+    opacity: 0.65;
     background: var(--bg);
+    color: var(--ink-soft);
+  }
+  .bulk-complete-btn.finished:active {
+    opacity: 0.85;
   }
   .bulk-complete-btn svg {
     width: 14px; height: 14px;
@@ -1018,7 +1162,7 @@
     <div class="header">
       <div class="header-text">
         <div class="date" id="today-date"></div>
-        <div class="greeting" id="today-greeting">오늘 루틴,<br/><span class="accent">하나씩 체크해 볼까요</span></div>
+        <div class="greeting" id="today-greeting">오늘 스킨케어 루틴,<br/><span class="accent">하나씩 체크해볼까요</span></div>
       </div>
     </div>
 
@@ -1168,12 +1312,6 @@
         </div>
       </div>
 
-      <div class="bulk-complete-row" id="bulk-complete-row">
-        <button class="bulk-complete-btn" id="bulk-complete-btn">
-          <svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg>
-          <span id="bulk-complete-label">오늘 루틴 모두 완료</span>
-        </button>
-      </div>
 
       <div class="section">
         <div class="section-head">
@@ -1189,6 +1327,13 @@
           <div class="section-meta" id="evening-meta">0 / 6</div>
         </div>
         <div class="list" id="evening-list"></div>
+      </div>
+
+      <div class="bulk-complete-row" id="bulk-complete-row">
+        <button class="bulk-complete-btn" id="bulk-complete-btn">
+          <svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg>
+          <span id="bulk-complete-label">오늘 루틴 모두 완료</span>
+        </button>
       </div>
 
       <div class="streak-card">
@@ -1265,9 +1410,10 @@
 
       <div class="section">
         <div class="section-head">
-          <div class="section-title">최근 7일</div>
+          <div class="section-title">선택한 날짜</div>
+          <div class="section-meta" id="selected-day-label">오늘</div>
         </div>
-        <div class="history-list" id="history-list"></div>
+        <div class="day-detail-inline" id="day-detail-inline"></div>
       </div>
     </div>
   </div>
@@ -1662,7 +1808,7 @@
     if (!steps) {
       greet.innerHTML = `안녕하세요,<br/><span class="accent">루틴부터 만들어 볼까요</span>`;
     } else {
-      greet.innerHTML = `오늘 루틴,<br/><span class="accent">하나씩 체크해 볼까요</span>`;
+      greet.innerHTML = `오늘 스킨케어 루틴,<br/><span class="accent">하나씩 체크해볼까요</span>`;
     }
   }
 
@@ -1775,7 +1921,7 @@
 
     if (isDayFinished()) {
       btn.classList.add("finished");
-      label.innerHTML = `오늘 종료됨`;
+      label.innerHTML = `오늘 종료됨 · 취소하려면 누르기`;
     } else if (remaining === 0) {
       btn.classList.add("ready");
       label.innerHTML = `<span class="ad-icon">AD</span>오늘 루틴 종료`;
@@ -1804,7 +1950,17 @@
 
   function endTodayRoutine() {
     if (!hasSteps()) return;
-    if (isDayFinished()) return;
+
+    // 이미 종료된 상태 → 취소 흐름
+    if (isDayFinished()) {
+      const ok = confirm("오늘 종료를 취소할까요?\n단계를 다시 수정할 수 있어요");
+      if (!ok) return;
+      localStorage.removeItem("routine_check_finished_" + today);
+      localStorage.removeItem("routine_check_celebrated_" + today);
+      refreshEndButton();
+      showToast("종료를 취소했어요");
+      return;
+    }
 
     const all = [...userRoutine.morning, ...userRoutine.evening];
     const restCount = all.filter(i => statusOf(i.id) === "rest").length;
@@ -2241,40 +2397,114 @@
       const lv = getDayLevel(iso);
       const cell = document.createElement("div");
       const isToday = d === todayDate;
+      const isFuture = d > todayDate;
+      const isSelected = iso === selectedDate;
       cell.className = "cal-day in-month"
         + (lv === 3 ? " l3" : "")
-        + (isToday ? " today" : "");
+        + (isToday ? " today" : "")
+        + (isSelected ? " selected" : "")
+        + (!isFuture ? " clickable" : "");
       cell.innerHTML = `${lv > 0 ? `<div class="level l${lv}"></div>` : ""}<span class="num">${d}</span>`;
+      if (!isFuture) {
+        cell.addEventListener("click", () => {
+          selectedDate = iso;
+          // 셀 강조 갱신
+          document.querySelectorAll(".cal-day.selected").forEach(c => c.classList.remove("selected"));
+          cell.classList.add("selected");
+          renderSelectedDay();
+        });
+      }
       root.appendChild(cell);
     }
   }
 
-  function renderHistoryList() {
-    const root = document.getElementById("history-list");
-    root.innerHTML = "";
-    const now = new Date();
-    now.setHours(0,0,0,0);
-    for (let i = 0; i < 7; i++) {
-      const cur = new Date(now);
-      cur.setDate(now.getDate() - i);
-      const iso = toISO(cur);
-      const pct = Math.round(getDayCompletion(iso) * 100);
-      const label = `${cur.getMonth()+1}/${cur.getDate()}`;
-      const el = document.createElement("div");
-      el.className = "h-item";
-      el.innerHTML = `
-        <div class="h-date">${label}</div>
-        <div class="h-bar-wrap"><div class="h-bar" style="width:${pct}%"></div></div>
-        <div class="h-pct">${pct}%</div>
-      `;
-      root.appendChild(el);
+  /* 선택된 날짜 (기록 화면 인라인 상세) */
+  let selectedDate = today;
+
+  function renderSelectedDay() {
+    const root = document.getElementById("day-detail-inline");
+    const labelEl = document.getElementById("selected-day-label");
+    if (!root) return;
+
+    const date = fromISO(selectedDate);
+    const days = ["일","월","화","수","목","금","토"];
+    const isToday = selectedDate === today;
+    if (labelEl) {
+      labelEl.textContent = isToday
+        ? `오늘 · ${date.getMonth()+1}월 ${date.getDate()}일`
+        : `${date.getMonth()+1}월 ${date.getDate()}일 ${days[date.getDay()]}요일`;
     }
+
+    if (!hasSteps()) {
+      root.innerHTML = `<div class="day-detail-empty-block">루틴을 등록하면<br/>그날 기록이 여기에 보여요</div>`;
+      return;
+    }
+
+    const dayState = checkState[selectedDate] || {};
+    const dayNotes = (noteState && noteState[selectedDate]) || {};
+    const all = [...userRoutine.morning, ...userRoutine.evening];
+    const done = all.filter(i => dayState[i.id] === "done").length;
+    const rest = all.filter(i => dayState[i.id] === "rest").length;
+    const active = all.length - rest;
+    const pct = active ? Math.round(done / active * 100) : 0;
+
+    const summaryHtml = (done === 0 && rest === 0)
+      ? `<div class="day-detail-empty-block">이날은 기록이 없어요</div>`
+      : `
+        <div class="day-detail-summary-row">
+          <div class="day-detail-pct">${pct}%</div>
+          <div class="day-detail-stat">
+            <strong>${done} / ${active} 단계 완료</strong>
+            <span>${rest > 0 ? `오늘 휴식 ${rest}` : "휴식 없이 진행"}</span>
+          </div>
+        </div>
+      `;
+
+    function buildSection(period) {
+      const items = userRoutine[period];
+      if (items.length === 0) {
+        return `
+          <div class="day-detail-section">
+            <div class="day-detail-section-title">${period === "morning" ? "아침 루틴" : "저녁 루틴"}</div>
+            <div class="day-detail-empty">단계 없음</div>
+          </div>
+        `;
+      }
+      const rows = items.map(item => {
+        const status = dayState[item.id];
+        const memo = dayNotes[item.id];
+        const cls = status === "done" ? "done" : status === "rest" ? "rest" : "";
+        const label = status === "done" ? "완료" : status === "rest" ? "휴식" : "미체크";
+        const checkSvg = status === "done"
+          ? '<svg viewBox="0 0 16 16"><polyline points="3,8 7,12 13,4"/></svg>'
+          : "";
+        const memoBlock = memo
+          ? `<li class="day-detail-memo">메모: ${escapeHtml(memo)}</li>`
+          : "";
+        return `
+          <li class="day-detail-row ${cls}">
+            <div class="day-detail-status ${cls}">${checkSvg}</div>
+            <span class="step-name">${escapeHtml(item.title)}</span>
+            <span class="day-detail-status-label">${label}</span>
+          </li>
+          ${memoBlock}
+        `;
+      }).join("");
+      return `
+        <div class="day-detail-section">
+          <div class="day-detail-section-title">${period === "morning" ? "아침 루틴" : "저녁 루틴"}</div>
+          <ul class="day-detail-list">${rows}</ul>
+        </div>
+      `;
+    }
+
+    root.innerHTML = summaryHtml + buildSection("morning") + buildSection("evening");
   }
 
   function renderHistory() {
     renderHistoryStats();
     renderCalendar();
-    renderHistoryList();
+    renderSelectedDay();
   }
 
   /* ============ 편집 view 렌더 ============ */
@@ -2625,6 +2855,7 @@
     window.scrollTo({ top: 0, behavior: "instant" });
     if (target === "history") renderHistory();
     if (target === "today") renderWeek();
+    if (target === "edit") renderEdit();
   }
   document.querySelectorAll(".tab").forEach(tab => {
     tab.addEventListener("click", () => switchView(tab.dataset.view));
